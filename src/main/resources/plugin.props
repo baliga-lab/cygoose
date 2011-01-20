@@ -14,7 +14,7 @@ pluginDescription=The CyGoose Cytoscape Plugin gives any network in Cytoscape fu
 pluginVersion=2.9
 
 # Compatible Cytoscape version
-cytoscapeVersion=2.8
+cytoscapeVersion=2.7.0,2.8.0
 
 # Category, use one of the categories listed on the website or create your own
 pluginCategory=Communication/Scripting
@@ -24,5 +24,5 @@ pluginCategory=Communication/Scripting
 # List of authors, each author(s) and institution must be on a separate line
 pluginAuthorsInstitutions=Sarah Killcoyne, Dan Tenenbaum and Wei-ju Wu:Institute for Systems Biology;John Lin, Kevin Drew and Richard Bonneau:NYU Bonneau Lab
 
-releaseDate=January 7th, 2011
+releaseDate=January 19th, 2011
 
