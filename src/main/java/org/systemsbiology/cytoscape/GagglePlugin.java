@@ -115,7 +115,6 @@ implements PropertyChangeListener, GaggleConnectionListener,
     }
 
     public void setConnected(boolean connected, Boss boss) {
-        logger.debug("setConnected() " + boss.toString());
         gaggleBoss = boss;
         connectedToGaggle = connected;
         gDialog.setConnectButtonStatus(connected);
