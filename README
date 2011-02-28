@@ -25,12 +25,39 @@ Note: Institute for Systems Biology provides the Maven repository for
 Build Instructions
 ------------------
 
-Change pom.xml cytoscape.jar path to match your environment, the provided
-pom is preconfigured for Mac OS X and Cytoscape 2.8.0.
+For practical reasons, we do not reference the cytoscape.jar file
+directly - it is about 45 MB in size ! Instead, the dependency was
+added via a systemPath setting, which means it is expected that the
+developer has downloaded the Cytoscape application and provides the
+setting either through a profile in a settings.xml or via the command
+line.
+
+1. Profile in settings.xml
+
+In your ~/.m2/settings.xml, add the following section
+
+...
+  <profiles>
+    ...
+    <profile>
+      <id>cytoscape</id>
+      <properties>
+        <cytoscape.home>/path/to/cytoscape.jar/directory</cytoscape.home>
+      </properties>
+    </profile>
+    ...
+  </profiles>
+...
 
 Invoke 
 
-mvn assembly:assembly
+mvn assembly:assembly -P cytoscape
+
+2. Specifying the location directly
+
+invoke
+
+mvn assembly:assembly -Dcytoscape.home=/path/to/cytoscape.jar/directory
 
 The project will build a jar file including the necessary dependencies.
 
