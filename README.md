@@ -37,10 +37,10 @@ In your ~/.m2/settings.xml, add the following section
 	<profiles>
 		...
 		<profile>
-			&lt;id&gt;cytoscape&lt;/id&gt;
-			&lt;properties&gt;
-				&lt;cytoscape.home&gt;/path/to/cytoscape.jar/directory&lt;/cytoscape.home&gt;
-      			&lt;/properties&gt;
+			<id>cytoscape</id>
+			<properties>
+				<cytoscape.home>/path/to/cytoscape.jar/directory</cytoscape.home>
+      			</properties>
 		</profile>
 		...
 	</profiles>
