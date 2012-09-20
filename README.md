@@ -54,7 +54,7 @@ Invoke
 
 invoke
 
-  mvn assembly:assembly -Dcytoscape.home=/path/to/cytoscape.jar/directory
+	mvn assembly:assembly -Dcytoscape.home=/path/to/cytoscape.jar/directory
 
 The project will build a jar file including the necessary dependencies.
 
