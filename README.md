@@ -34,21 +34,21 @@ line.
 In your ~/.m2/settings.xml, add the following section
 
   ...
-  <profiles>
+  &lt;profiles&gt;
     ...
-    <profile>
-      <id>cytoscape</id>
-      <properties>
-        <cytoscape.home>/path/to/cytoscape.jar/directory</cytoscape.home>
-      </properties>
-    </profile>
+    &lt;profile&gt;
+      &lt;id&gt;cytoscape&lt;/id&gt;
+      &lt;properties&gt;
+        &lt;cytoscape.home&gt;/path/to/cytoscape.jar/directory&lt;/cytoscape.home&gt;
+      &lt;/properties&gt;
+    &lt;/profile&gt;
     ...
-  </profiles>
+  &lt;/profiles&gt;
   ...
 
 Invoke 
 
-mvn assembly:assembly -P cytoscape
+	mvn assembly:assembly -P cytoscape
 
 2. Specifying the location directly
 
