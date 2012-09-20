@@ -33,18 +33,18 @@ line.
 
 In your ~/.m2/settings.xml, add the following section
 
-  ...
-  &lt;profiles&gt;
-    ...
-    &lt;profile&gt;
-      &lt;id&gt;cytoscape&lt;/id&gt;
-      &lt;properties&gt;
-        &lt;cytoscape.home&gt;/path/to/cytoscape.jar/directory&lt;/cytoscape.home&gt;
-      &lt;/properties&gt;
-    &lt;/profile&gt;
-    ...
-  &lt;/profiles&gt;
-  ...
+	...
+	&lt;profiles&gt;
+		...
+		&lt;profile&gt;
+			&lt;id&gt;cytoscape&lt;/id&gt;
+			&lt;properties&gt;
+				&lt;cytoscape.home&gt;/path/to/cytoscape.jar/directory&lt;/cytoscape.home&gt;
+      			&lt;/properties&gt;
+		&lt;/profile&gt;
+		...
+	&lt;/profiles&gt;
+	...
 
 Invoke 
 
