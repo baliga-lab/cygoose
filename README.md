@@ -1,5 +1,4 @@
-CyGoose - Cytoscape Gaggle Plugin
-----------------------------------
+## CyGoose - Cytoscape Gaggle Plugin
 
 This is a Cytoscape plugin that integrates with the Gaggle communication
 framework.
@@ -8,22 +7,20 @@ The current version was tested with Cytoscape 2.8.0 and 2.7.0 and was
 adapted to account for the changes made starting in 2.7.0.
 The original CyGoose was written by
 
-- Sarah Killcoyne and Dan Tenenbaum, Institute for Systems Biology
-- John Lin, Kevin Drew and Richard Bonneau, NYU Bonneau Lab
+* Sarah Killcoyne and Dan Tenenbaum, Institute for Systems Biology
+* John Lin, Kevin Drew and Richard Bonneau, NYU Bonneau Lab
 
-Build Requirements
-------------------
+### Build Requirements
 
 JDK >= 1.5
 Maven >= 2.x
 Cytoscape >= 2.7.0
 
-Note: Institute for Systems Biology provides the Maven repository for
------ Gaggle dependencies, due to licensing/packaging, a separate Cytoscape
-      download is required to compile the project.
+<b>Note:</b> Institute for Systems Biology provides the Maven repository for
+Gaggle dependencies, due to licensing/packaging, a separate Cytoscape
+download is required to compile the project.
 
-Build Instructions
-------------------
+### Build Instructions
 
 For practical reasons, we do not reference the cytoscape.jar file
 directly - it is about 45 MB in size ! Instead, the dependency was
@@ -36,7 +33,7 @@ line.
 
 In your ~/.m2/settings.xml, add the following section
 
-...
+  ...
   <profiles>
     ...
     <profile>
@@ -47,7 +44,7 @@ In your ~/.m2/settings.xml, add the following section
     </profile>
     ...
   </profiles>
-...
+  ...
 
 Invoke 
 
@@ -57,7 +54,7 @@ mvn assembly:assembly -P cytoscape
 
 invoke
 
-mvn assembly:assembly -Dcytoscape.home=/path/to/cytoscape.jar/directory
+  mvn assembly:assembly -Dcytoscape.home=/path/to/cytoscape.jar/directory
 
 The project will build a jar file including the necessary dependencies.
 

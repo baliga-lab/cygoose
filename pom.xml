@@ -60,7 +60,7 @@
   <repositories>
     <repository>
       <id>isb.gaggle.release</id>
-      <url>http://gaggle.systemsbiology.org/maven/repo-releases</url>
+      <url>http://como.systemsbiology.net/maven/repo-releases</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -98,7 +98,7 @@
       <version>2.8.0</version>
       <scope>system</scope>
       <!-- Replace with the path to your Cytoscape installation here -->
-      <systemPath>${cytoscape.home}/cytoscape.jar</systemPath>
+      <systemPath>/home/weiju/Cytoscape_v2.8.3/cytoscape.jar</systemPath>
     </dependency>
   </dependencies>
   <build>
