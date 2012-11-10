@@ -1,6 +1,7 @@
 package org.systemsbiology.cytoscape;
 
 import cytoscape.CyEdge;
+import cytoscape.CyNetwork;
 import cytoscape.CyNode;
 import cytoscape.Cytoscape;
 import cytoscape.data.CyAttributes;
@@ -9,6 +10,7 @@ import cytoscape.logger.CyLogger;
 import org.systemsbiology.cytoscape.dialog.CyAttrDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.gaggle.core.Boss;
+import org.systemsbiology.gaggle.core.Boss3;
 import org.systemsbiology.gaggle.core.datatypes.*;
 
 import javax.swing.*;
@@ -205,8 +207,7 @@ public class CyBroadcast {
         }
     }
 
-    private void broadcastDataMatrix(String[] condNames, CyGoose goose,
-                                     String targetGoose) {
+    private void broadcastDataMatrix(String[] condNames, CyGoose goose, String targetGoose) {
         if (getSelectedNodes(goose).size() <= 0) {
             showWarning("No nodes were selected for Data Matrix broadcast.");
             return;
@@ -253,31 +254,7 @@ public class CyBroadcast {
     public void broadcastNetwork(CyGoose goose, String targetGoose) {
         logger.info("broadcastNetwork " + getNetworkIdentifier(goose));
 
-        Network gaggleNetwork = new Network();
-        gaggleNetwork.setSpecies(gDialog.getSpecies());
-
-        for (CyNode currentSelectedNode : getSelectedNodes(goose)) {
-            gaggleNetwork.add(currentSelectedNode.getIdentifier());
-        }
-
-        CyAttributes edgeAtts = Cytoscape.getEdgeAttributes();
-        for (CyEdge currentSelectedEdge : getSelectedEdges(goose)) {
-            CyNode sourceNode = (CyNode) currentSelectedEdge.getSource();
-            CyNode targetNode = (CyNode) currentSelectedEdge.getTarget();
-
-            // create a new GaggleInteraction for broadcast
-            String interactionType =
-                edgeAtts.getStringAttribute(currentSelectedEdge.getIdentifier(),
-                                            Semantics.INTERACTION);
-            Interaction gaggleInteraction =
-                new Interaction(sourceNode.getIdentifier(),
-                                targetNode.getIdentifier(),
-                                interactionType,
-                                currentSelectedEdge.isDirected());
-            gaggleNetwork.add(gaggleInteraction);
-        }
-
-        gaggleNetwork = addAttributes(gaggleNetwork);
+        Network gaggleNetwork = GenerateNetwork(goose);
         logger.debug("in broadcastnetwork, species is " + gaggleNetwork.getSpecies());
         try {
             this.gaggleBoss.broadcastNetwork(goose.getName(), targetGoose, gaggleNetwork);
@@ -285,6 +262,83 @@ public class CyBroadcast {
             logger.error(ex.getMessage(), ex);
         }
     }
+
+
+    public void NextWorkflowActionHandler(CyGoose goose)
+    {
+        if (this.gaggleBoss instanceof Boss3)
+        {
+            logger.info("Boss supports workflow");
+            WorkflowAction action = goose.getWorkflowAction();
+            if (action != null)
+            {
+                logger.info("Prepare workflow response data");
+
+                GaggleData[] gaggleData = null;
+                if (action.getTargets() != null && action.getTargets().length > 0)
+                {
+                    // Parallel targets, we need to duplicate the data for each target
+                    Network gaggleNetwork = GenerateNetwork(goose);
+                    if (gaggleNetwork != null)
+                    {
+                        logger.info("Gaggle Network selected: " + gaggleNetwork.getName());
+                        gaggleData = new GaggleData[action.getTargets().length];
+                        for (int i = 0; i < action.getTargets().length; i++)
+                            gaggleData[i] = gaggleNetwork;
+                    }
+                }
+
+                WorkflowAction response = new WorkflowAction(action.getSessionID(),
+                        WorkflowAction.ActionType.Response,
+                        action.getSource(),
+                        action.getTargets(),
+                        action.getOption() | WorkflowAction.Options.SuccessMessage.getValue(),
+                        gaggleData
+                );
+                try
+                {
+                    ((Boss3)gaggleBoss).handleWorkflowAction(response);
+                }
+                catch (Exception e)
+                {
+                    logger.info("Failed to submit response to boss: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private Network GenerateNetwork(CyGoose goose)
+    {
+        Network gaggleNetwork = new Network();
+        gaggleNetwork.setSpecies(gDialog.getSpecies());
+
+        for (CyNode currentSelectedNode : getSelectedNodes(goose)) {
+            logger.info("Network ID: " + currentSelectedNode.getIdentifier());
+            gaggleNetwork.add(currentSelectedNode.getIdentifier());
+        }
+
+        CyAttributes edgeAtts = Cytoscape.getEdgeAttributes();
+        for (CyEdge currentSelectedEdge : getSelectedEdges(goose)) {
+            CyNode sourceNode = (CyNode) currentSelectedEdge.getSource();
+            CyNode targetNode = (CyNode) currentSelectedEdge.getTarget();
+            logger.info("Source node: " + sourceNode.getIdentifier() + " Target node: " + targetNode.getIdentifier());
+
+            // create a new GaggleInteraction for broadcast
+            String interactionType =
+                    edgeAtts.getStringAttribute(currentSelectedEdge.getIdentifier(),
+                            Semantics.INTERACTION);
+            Interaction gaggleInteraction =
+                    new Interaction(sourceNode.getIdentifier(),
+                            targetNode.getIdentifier(),
+                            interactionType,
+                            currentSelectedEdge.isDirected());
+            gaggleNetwork.add(gaggleInteraction);
+        }
+
+        gaggleNetwork = addAttributes(gaggleNetwork);
+        return gaggleNetwork;
+    }
+
 
     private Network addAttributes(Network gaggleNet) {
         for (String id : gaggleNet.getNodes())

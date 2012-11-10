@@ -13,6 +13,7 @@ import cytoscape.view.CytoscapeDesktop;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
 import org.systemsbiology.gaggle.core.Boss;
+import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
 import org.systemsbiology.gaggle.geese.common.GaggleConnectionListener;
 import org.systemsbiology.gaggle.geese.common.GooseShutdownHook;
 import org.systemsbiology.gaggle.geese.common.RmiGaggleConnector;
@@ -46,7 +47,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
     private boolean registered;
     private CyGoose defaultGoose;
 
-    private static Boss gaggleBoss;
+    private static org.systemsbiology.gaggle.core.Boss gaggleBoss;
     private static boolean connectedToGaggle = false;
     private static GooseDialog gDialog;
     private static CyBroadcast broadcast;
@@ -281,7 +282,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
         logger.info("goose name after registration: " + Goose.getName());
         logger.info("setting title on network " + Network.getIdentifier());
         Network.setTitle(Goose.getName());
-        gaggleBoss = connector.getBoss();
+        gaggleBoss = (org.systemsbiology.gaggle.core.Boss3)connector.getBoss();
         Goose.setBoss(gaggleBoss);
         return Goose;
     }
@@ -303,6 +304,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
         addBroadcastMatrixAction();
         addBroadcastTupleAction();
         addConnectAction();
+        addNextWorkflowAction();
     }
 
     private void addBroadcastNameListAction() {
@@ -381,6 +383,22 @@ implements PropertyChangeListener, GaggleConnectionListener,
                     }
                 }
             });
+    }
+
+    private void addNextWorkflowAction() {
+        logger.info("in nextWorkflowAction");
+        gDialog.addButtonAction(GooseButton.Next, new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                logger.info("in nextWorkflowAction's listener");
+                CyNetwork Network = Cytoscape.getCurrentNetwork();
+                CyGoose Goose = networkGeese.get(Network.getIdentifier());
+                if (Goose != null)
+                {
+                    logger.info("In Next workflow handler");
+                    broadcast.NextWorkflowActionHandler(Goose);
+                }
+            }
+        });
     }
 
     private void reconnectAllGeese() {

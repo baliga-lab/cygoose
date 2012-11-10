@@ -1,5 +1,8 @@
 package org.systemsbiology.cytoscape.dialog;
 
+import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
+import org.systemsbiology.gaggle.core.datatypes.WorkflowComponent;
+
 import javax.swing.*;
 import java.awt.event.ActionListener;
 
@@ -7,9 +10,11 @@ import java.awt.event.ActionListener;
  * @author skillcoy
  */
 public class GooseDialog extends javax.swing.JPanel {
+    WorkflowAction action;
+
     public enum GooseButton {
         CONNECT("Connect"), SHOW("Show"), HIDE("Hide"), TUPLE(
-            "Tuple"), MATRIX("Matrix"), NETWORK("Network"), LIST("List");
+            "Tuple"), MATRIX("Matrix"), NETWORK("Network"), LIST("List"), Next("Workflow");
 
         private String buttonName;
 
@@ -59,6 +64,9 @@ public class GooseDialog extends javax.swing.JPanel {
             case LIST:
                 button = this.listButton;
                 break;
+            case Next:
+                button = this.nextWorkflowButton;
+                break;
         }
         button.addActionListener(l);
     }
@@ -87,6 +95,8 @@ public class GooseDialog extends javax.swing.JPanel {
             case LIST:
                 button = this.listButton;
                 break;
+            case Next:
+                button = this.nextWorkflowButton;
         }
         button.setEnabled(enabled);
     }
@@ -123,8 +133,32 @@ public class GooseDialog extends javax.swing.JPanel {
         }
     }
     
-    
-    
+    public void setWorkflowUI(WorkflowAction action)
+    {
+        if (action != null)
+        {
+            this.action = action;
+            String nextGeeseString = "";
+            WorkflowComponent[] targets = action.getTargets();
+            if (targets != null)
+            {
+                for (int i = 0; i < targets.length; i++)
+                {
+                    WorkflowComponent target = targets[i];
+                    if (target != null && target.getName() != null && target.getName().length() > 0)
+                        nextGeeseString += (target.getName() + "\n");
+                }
+
+                this.nextWorkflowText.setText(nextGeeseString);
+            }
+        }
+    }
+
+    public WorkflowAction getCurrentWorkflowAction()
+    {
+        return this.action;
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -138,6 +172,11 @@ public class GooseDialog extends javax.swing.JPanel {
         showButton = new javax.swing.JButton();
         hideButton = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
+        workflowPanel = new javax.swing.JPanel();
+        nextWorkflowText = new javax.swing.JTextField();
+        nextWorkflowDataText= new javax.swing.JTextField();
+        nextWorkflowButton = new javax.swing.JButton();
+        jSeparator4 = new javax.swing.JSeparator();
         broadcastPanel = new javax.swing.JPanel();
         broadcastLabel = new javax.swing.JLabel();
         tupleButton = new javax.swing.JButton();
@@ -208,6 +247,52 @@ public class GooseDialog extends javax.swing.JPanel {
         );
 
         jSeparator1.setMaximumSize(new java.awt.Dimension(50, 10));
+
+        //nextWorkflowLabel.setFont(new java.awt.Font("Lucida Grande", 0, 12));
+        //nextWorkflowLabel.setText("Next Workflow Component:");
+
+        nextWorkflowText.setBackground(new java.awt.Color(230, 230, 230));
+        nextWorkflowText.setFont(new java.awt.Font("Lucida Grande", 0, 12));
+        nextWorkflowText.setToolTipText("Shows the next component of the workflow");
+        nextWorkflowText.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createTitledBorder(null, "Next Workflow Component:", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION), "", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Lucida Grande", 0, 12)));
+        nextWorkflowText.setFocusable(false);
+
+        nextWorkflowDataText.setBackground(new java.awt.Color(230, 230, 230));
+        nextWorkflowDataText.setFont(new java.awt.Font("Lucida Grande", 0, 12));
+        nextWorkflowDataText.setToolTipText("Shows the data type to be broadcast to the next component of the workflow");
+        nextWorkflowDataText.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createTitledBorder(null, "Data Broadcast to the Next Workflow Component:", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION), "", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Lucida Grande", 0, 12)));
+        nextWorkflowDataText.setFocusable(false);
+
+        nextWorkflowButton.setFont(new java.awt.Font("Lucida Grande", 0, 10));
+        nextWorkflowButton.setText("Next");
+        nextWorkflowButton.setToolTipText("Broadcast data to the next workflow component");
+        nextWorkflowButton.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED, java.awt.Color.lightGray, java.awt.Color.white, java.awt.Color.darkGray, java.awt.Color.gray));
+        nextWorkflowButton.setEnabled(true);
+
+        org.jdesktop.layout.GroupLayout workflowPanelLayout = new org.jdesktop.layout.GroupLayout(workflowPanel);
+        workflowPanel.setLayout(workflowPanelLayout);
+        workflowPanelLayout.setHorizontalGroup(
+                workflowPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                        .add(workflowPanelLayout.createSequentialGroup()
+                                .add(workflowPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                        .add(nextWorkflowText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 250, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                        .add(nextWorkflowDataText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 250, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                        .add(nextWorkflowButton, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 30, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                )
+                                .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        workflowPanelLayout.setVerticalGroup(
+                workflowPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                        .add(workflowPanelLayout.createSequentialGroup()
+                                .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .add(nextWorkflowText)
+                                .add(1, 1, 1)
+                                .add(nextWorkflowDataText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 25, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(1, 1, 1)
+                                .add(nextWorkflowButton, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 25, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        )
+        );
+        jSeparator4.setMaximumSize(new java.awt.Dimension(50, 10));
 
         broadcastLabel.setFont(new java.awt.Font("Lucida Grande", 0, 12));
         broadcastLabel.setText("Broadcast Data");
@@ -354,7 +439,13 @@ public class GooseDialog extends javax.swing.JPanel {
                         .add(gooseControlPanel, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .add(4, 4, 4))
                     .add(layout.createSequentialGroup()
-                        .add(jSeparator1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 200, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, jSeparator1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 200, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, workflowPanel, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                )
+                                .add(17, 17, 17))
+                    .add(layout.createSequentialGroup()
+                        .add(jSeparator4, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 200, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                         .addContainerGap(51, Short.MAX_VALUE))
                     .add(layout.createSequentialGroup()
                         .add(broadcastPanel, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
@@ -381,6 +472,9 @@ public class GooseDialog extends javax.swing.JPanel {
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(jSeparator1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 17, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(workflowPanel, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .add(21, 21, 21)
+                .add(jSeparator4, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 17, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .add(broadcastPanel, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(jSeparator2, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 10, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
@@ -398,6 +492,12 @@ public class GooseDialog extends javax.swing.JPanel {
     
     
     // Variables declaration - do not modify
+    private javax.swing.JLabel workflowTitleLabel;
+    private javax.swing.JPanel workflowPanel;
+    private javax.swing.JTextField nextWorkflowText;
+    private javax.swing.JTextField nextWorkflowDataText;
+    private javax.swing.JButton nextWorkflowButton;
+
     private javax.swing.JLabel broadcastLabel;
     private javax.swing.JPanel broadcastPanel;
     private javax.swing.JButton connectButton;
@@ -409,6 +509,7 @@ public class GooseDialog extends javax.swing.JPanel {
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JSeparator jSeparator3;
+    private javax.swing.JSeparator jSeparator4;
     private javax.swing.JComboBox layoutComboBox;
     private javax.swing.JLabel layoutLabel;
     private javax.swing.JPanel layoutPanel;

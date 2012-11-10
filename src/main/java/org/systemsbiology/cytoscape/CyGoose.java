@@ -1,13 +1,19 @@
 package org.systemsbiology.cytoscape;
 
+import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
+import com.install4j.runtime.installer.helper.Logger;
+import cytoscape.data.Semantics;
+import cytoscape.util.URLUtil;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
 import org.systemsbiology.cytoscape.task.HandleNetworkTask;
 
 import org.systemsbiology.cytoscape.visual.SeedMappings;
 import org.systemsbiology.cytoscape.script.*;
+import org.systemsbiology.gaggle.core.Boss3;
 import org.systemsbiology.gaggle.core.Goose;
 import org.systemsbiology.gaggle.core.Boss;
+import org.systemsbiology.gaggle.core.Goose3;
 import org.systemsbiology.gaggle.core.datatypes.*;
 
 import java.awt.event.ActionEvent;
@@ -18,6 +24,7 @@ import java.rmi.UnmarshalException;
 import java.util.*;
 
 import javax.swing.*;
+import java.net.*;
 
 import cytoscape.*;
 import cytoscape.logger.CyLogger;
@@ -43,7 +50,7 @@ import giny.model.Edge;
  *         direct broadcasts to specific networks rather than just the selected
  *         one.
  */
-public class CyGoose implements Goose {
+public class CyGoose implements Goose3 {
     private static CyLogger logger = CyLogger.getLogger(CyGoose.class);
 
     private static boolean debug = false;
@@ -76,6 +83,7 @@ public class CyGoose implements Goose {
     private String broadcastId;
     private String targetGoose = "Boss";
     private String species;
+    private WorkflowAction wfaction;
 
     private static void print(String s) { System.out.println(s); }
 
@@ -160,6 +168,10 @@ public class CyGoose implements Goose {
     public void setSpeciesName(String name) {
         this.species = name;
         this.gDialog.setSpeciesText(name);
+    }
+
+    public WorkflowAction getWorkflowAction() {
+        return this.gDialog.getCurrentWorkflowAction();
     }
 
     /**
@@ -459,7 +471,8 @@ public class CyGoose implements Goose {
         // refresh network to flag selected nodes
         Cytoscape.getDesktop().setFocus(CyNet.getIdentifier());
     }
-	
+
+
     /**
      * @param source
      * @param gNetwork
@@ -514,6 +527,84 @@ public class CyGoose implements Goose {
         // refresh network to flag selected nodes
         Cytoscape.getDesktop().setFocus(NetworkId);
 		}
+
+    public void handleWorkflowAction(org.systemsbiology.gaggle.core.datatypes.WorkflowAction workflowAction) throws RemoteException
+    {
+        if (workflowAction != null)
+        {
+            logger.info("  --Workflow Action from " + workflowAction.getSource().getName());
+
+            // Update UI
+            this.gDialog.setWorkflowUI(workflowAction);
+            Object data = workflowAction.getSource().getParams().get(WorkflowComponent.ParamNames.Data.getValue());
+            if (data instanceof DataMatrix)
+            {
+                this.handleMatrix(workflowAction.getSource().getName(), (DataMatrix)data);
+            }
+            else if (data instanceof Cluster)
+            {
+                this.handleCluster(workflowAction.getSource().getName(), (Cluster)data);
+            }
+            else if (data instanceof GaggleTuple)
+            {
+                this.handleTuple(workflowAction.getSource().getName(), (GaggleTuple)data);
+            }
+            else if (data instanceof Namelist)
+            {
+                this.handleNameList(workflowAction.getSource().getName(), (Namelist)data);
+            }
+            else if (data instanceof Network)
+            {
+                this.handleNetwork(workflowAction.getSource().getName(), (Network)data);
+            }
+            else if (data instanceof Table)
+            {
+                this.handleTable(workflowAction.getSource().getName(), (Table)data);
+            }
+            else if (data instanceof String) {
+
+                logger.info("  --Workflow Action from " + workflowAction.getSource().getName());
+                // It's an initialization action, where the data is stored in source's param
+                String dataurl = (String)data;
+                logger.info(dataurl);
+                try {
+                    //dataurl = "C:\\Users\\Ning Jiang\\Downloads\\inf.cys";
+                    //Cytoscape.createNewSession();
+                    //Cytoscape.setCurrentSessionFileName(dataurl);
+
+                    logger.info("Create view " + dataurl);
+                    CyNetwork network = Cytoscape.createNetworkFromFile(dataurl, true);
+                    cytoscape.view.CytoscapeDesktop desktop = Cytoscape.getDesktop();
+                    desktop.setNewNetwork(network);
+
+                    //CyLayoutAlgorithm Layout = CyLayouts.getDefaultLayout();
+                    //String LayoutName = (String) gDialog.getLayoutChooser().getSelectedItem();
+                    //if (!LayoutName.equalsIgnoreCase("default"))
+                    //    Layout = CyLayouts.getLayout(LayoutName);
+                    //Cytoscape.createNetworkView(network, network.getTitle(), Layout);
+                    //NetworkId = network.getIdentifier();
+
+                    network.unselectAllEdges();
+                    network.unselectAllNodes();
+                }
+                catch (Exception e)
+                {
+                    logger.error(e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void handleWorkflowInformation(java.lang.String s, java.lang.String s1)
+    {
+
+    }
+
+    public void handleTable(java.lang.String s, org.systemsbiology.gaggle.core.datatypes.Table table)
+    {
+
+    }
 
     // no point in this one
     public void setGeometry(int x, int y, int width, int height)
