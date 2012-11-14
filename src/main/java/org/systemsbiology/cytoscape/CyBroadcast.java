@@ -11,6 +11,7 @@ import org.systemsbiology.cytoscape.dialog.CyAttrDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.gaggle.core.Boss;
 import org.systemsbiology.gaggle.core.Boss3;
+import org.systemsbiology.gaggle.core.GooseWorkflowManager;
 import org.systemsbiology.gaggle.core.datatypes.*;
 
 import javax.swing.*;
@@ -264,44 +265,34 @@ public class CyBroadcast {
     }
 
 
-    public void NextWorkflowActionHandler(CyGoose goose)
+    public void NextWorkflowActionHandler(CyGoose goose, GooseWorkflowManager workflowManager, String requestID)
     {
         if (this.gaggleBoss instanceof Boss3)
         {
             logger.info("Boss supports workflow");
-            WorkflowAction action = goose.getWorkflowAction();
+            WorkflowAction action = workflowManager.getWorkflowAction(requestID);
             if (action != null)
             {
                 logger.info("Prepare workflow response data");
 
-                GaggleData[] gaggleData = null;
+                //GaggleData[] gaggleData = null;
                 if (action.getTargets() != null && action.getTargets().length > 0)
                 {
                     // Parallel targets, we need to duplicate the data for each target
                     Network gaggleNetwork = GenerateNetwork(goose);
+
                     if (gaggleNetwork != null)
                     {
                         logger.info("Gaggle Network selected: " + gaggleNetwork.getName());
-                        gaggleData = new GaggleData[action.getTargets().length];
                         for (int i = 0; i < action.getTargets().length; i++)
-                            gaggleData[i] = gaggleNetwork;
+                            workflowManager.addSessionTargetData(requestID, i, gaggleNetwork);
                     }
                 }
 
-                WorkflowAction response = new WorkflowAction(action.getSessionID(),
-                        WorkflowAction.ActionType.Response,
-                        action.getSource(),
-                        action.getTargets(),
-                        action.getOption() | WorkflowAction.Options.SuccessMessage.getValue(),
-                        gaggleData
-                );
-                try
+                if (workflowManager.CompleteWorkflowAction(gaggleBoss, requestID))
                 {
-                    ((Boss3)gaggleBoss).handleWorkflowAction(response);
-                }
-                catch (Exception e)
-                {
-                    logger.info("Failed to submit response to boss: " + e.getMessage());
+                    // Now we can clean up the UI
+                    gDialog.setWorkflowUI(null);
                 }
             }
         }

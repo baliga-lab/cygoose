@@ -1,16 +1,20 @@
 package org.systemsbiology.cytoscape.dialog;
 
+import org.systemsbiology.gaggle.core.GooseWorkflowManager;
 import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
 import org.systemsbiology.gaggle.core.datatypes.WorkflowComponent;
+import org.systemsbiology.gaggle.core.datatypes.WorkflowGaggleData;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
+import java.util.*;
 
 /**
  * @author skillcoy
  */
 public class GooseDialog extends javax.swing.JPanel {
-    WorkflowAction action;
+    GooseWorkflowManager workflowManager = new GooseWorkflowManager();
+    Map<String, String> networkWorkflowActionMap = Collections.synchronizedMap(new HashMap<String, String>());
 
     public enum GooseButton {
         CONNECT("Connect"), SHOW("Show"), HIDE("Hide"), TUPLE(
@@ -30,6 +34,8 @@ public class GooseDialog extends javax.swing.JPanel {
     public GooseDialog() {
         initComponents();
     }
+
+    public GooseWorkflowManager getWorkflowManager() { return this.workflowManager; }
 
     public void displayDataType(String type) {
         this.dataTypeText.setText(type);
@@ -137,7 +143,6 @@ public class GooseDialog extends javax.swing.JPanel {
     {
         if (action != null)
         {
-            this.action = action;
             String nextGeeseString = "";
             WorkflowComponent[] targets = action.getTargets();
             if (targets != null)
@@ -152,11 +157,24 @@ public class GooseDialog extends javax.swing.JPanel {
                 this.nextWorkflowText.setText(nextGeeseString);
             }
         }
+        else
+        {
+            // Reset the workflowText field
+            this.nextWorkflowText.setText("");
+        }
     }
 
-    public WorkflowAction getCurrentWorkflowAction()
+    public void addRequestNetwork(String NetworkId, String requestID)
     {
-        return this.action;
+        if (NetworkId != null && requestID != null)
+            networkWorkflowActionMap.put(NetworkId, requestID);
+    }
+
+    public String getRequestID(String NetworkId)
+    {
+        if (this.networkWorkflowActionMap.containsKey(NetworkId))
+            return this.networkWorkflowActionMap.get(NetworkId);
+        return null;
     }
 
     /** This method is called from within the constructor to

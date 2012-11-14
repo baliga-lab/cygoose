@@ -13,6 +13,7 @@ import cytoscape.view.CytoscapeDesktop;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
 import org.systemsbiology.gaggle.core.Boss;
+import org.systemsbiology.gaggle.core.GooseWorkflowManager;
 import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
 import org.systemsbiology.gaggle.geese.common.GaggleConnectionListener;
 import org.systemsbiology.gaggle.geese.common.GooseShutdownHook;
@@ -59,6 +60,8 @@ implements PropertyChangeListener, GaggleConnectionListener,
     private static Map<String, CyGoose> networkGeese;
     private static Set<String> species;
 
+    private GooseWorkflowManager workflowManager = new GooseWorkflowManager();
+
     public GagglePlugin() {
         // constructor gets called at load time and every time the toolbar is used
         if (pluginInitialized) return;
@@ -91,6 +94,8 @@ implements PropertyChangeListener, GaggleConnectionListener,
         broadcast = new CyBroadcast(gDialog, gaggleBoss);
         pluginInitialized = true;
     }
+
+    public GooseWorkflowManager getWorkflowManager() { return workflowManager; }
 
     private String getTargetGoose() {
         int targetGooseIndex = this.gDialog.getGooseChooser().getSelectedIndex();
@@ -236,6 +241,10 @@ implements PropertyChangeListener, GaggleConnectionListener,
             logger.info("=== Event " + Event.getPropertyName() + "===");
             CyGoose current = networkGeese.get(Cytoscape.getCurrentNetwork().getIdentifier());
             gDialog.setSpeciesText(current.getSpeciesName());
+            // Set the next workflow component text
+            String requestID = gDialog.getRequestID(Cytoscape.getCurrentNetwork().getIdentifier());
+            WorkflowAction action = workflowManager.getWorkflowAction(requestID);
+            gDialog.setWorkflowUI(action);
         }
     }
 
@@ -394,8 +403,14 @@ implements PropertyChangeListener, GaggleConnectionListener,
                 CyGoose Goose = networkGeese.get(Network.getIdentifier());
                 if (Goose != null)
                 {
-                    logger.info("In Next workflow handler");
-                    broadcast.NextWorkflowActionHandler(Goose);
+                    String requestID = gDialog.getRequestID(Network.getIdentifier());
+                    if (requestID != null)
+                    {
+                        logger.info("In Next workflow handler for " + requestID);
+                        broadcast.NextWorkflowActionHandler(Goose, gDialog.getWorkflowManager(), requestID);
+                    }
+                    else
+                        logger.warning("Couldn't find requestID for " + Network.getIdentifier());
                 }
             }
         });
