@@ -164,6 +164,14 @@ public class GooseDialog extends javax.swing.JPanel {
         }
     }
 
+    public void removeRequestNetwork(String NetworkId)
+    {
+        if (NetworkId != null && networkWorkflowActionMap.containsKey(NetworkId))
+        {
+           networkWorkflowActionMap.remove(NetworkId);
+        }
+    }
+
     public void addRequestNetwork(String NetworkId, String requestID)
     {
         if (NetworkId != null && requestID != null)

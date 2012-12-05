@@ -293,6 +293,7 @@ public class CyBroadcast {
                 {
                     // Now we can clean up the UI
                     gDialog.setWorkflowUI(null);
+                    gDialog.removeRequestNetwork(requestID);
                 }
             }
         }

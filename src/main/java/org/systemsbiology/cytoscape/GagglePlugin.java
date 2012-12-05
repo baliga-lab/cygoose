@@ -400,6 +400,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
             public void actionPerformed(ActionEvent event) {
                 logger.info("in nextWorkflowAction's listener");
                 CyNetwork Network = Cytoscape.getCurrentNetwork();
+                logger.info("Current Network Id: " + Network.getIdentifier());
                 CyGoose Goose = networkGeese.get(Network.getIdentifier());
                 if (Goose != null)
                 {
@@ -412,6 +413,8 @@ implements PropertyChangeListener, GaggleConnectionListener,
                     else
                         logger.warning("Couldn't find requestID for " + Network.getIdentifier());
                 }
+                else
+                    logger.warning("Couldn't find Goose for Network: " + Network.getIdentifier());
             }
         });
     }
