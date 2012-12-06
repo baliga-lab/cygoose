@@ -185,6 +185,19 @@ public class GooseDialog extends javax.swing.JPanel {
         return null;
     }
 
+    public int getNextWorkflowDataType()
+    {
+        if (radioButtonNamelist.isSelected())
+            return 0;
+        if (radioButtonMatrix.isSelected())
+            return 1;
+        if (radioButtonTuple.isSelected())
+            return 2;
+        if (radioButtonNetwork.isSelected())
+            return 3;
+        return -1;
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -200,7 +213,12 @@ public class GooseDialog extends javax.swing.JPanel {
         jSeparator1 = new javax.swing.JSeparator();
         workflowPanel = new javax.swing.JPanel();
         nextWorkflowText = new javax.swing.JTextField();
-        nextWorkflowDataText= new javax.swing.JTextField();
+        nextWorkflowDataText= new javax.swing.JPanel(new java.awt.GridLayout(0, 2));
+        dataRadioButtonGroup = new javax.swing.ButtonGroup();
+        radioButtonNamelist = new javax.swing.JRadioButton("List", true);
+        radioButtonTuple = new javax.swing.JRadioButton("Tuple", false);
+        radioButtonMatrix = new javax.swing.JRadioButton("Matrix", false);
+        radioButtonNetwork = new javax.swing.JRadioButton("Network", false);
         nextWorkflowButton = new javax.swing.JButton();
         jSeparator4 = new javax.swing.JSeparator();
         broadcastPanel = new javax.swing.JPanel();
@@ -289,6 +307,17 @@ public class GooseDialog extends javax.swing.JPanel {
         nextWorkflowDataText.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createTitledBorder(null, "Data Broadcast to the Next Workflow Component:", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION), "", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Lucida Grande", 0, 12)));
         nextWorkflowDataText.setFocusable(false);
 
+        dataRadioButtonGroup.add(radioButtonNamelist);
+        dataRadioButtonGroup.add(radioButtonMatrix);
+        dataRadioButtonGroup.add(radioButtonTuple);
+        dataRadioButtonGroup.add(radioButtonNetwork);
+
+        nextWorkflowDataText.add(radioButtonNamelist);
+        nextWorkflowDataText.add(radioButtonMatrix);
+        nextWorkflowDataText.add(radioButtonTuple);
+        nextWorkflowDataText.add(radioButtonNetwork);
+
+
         nextWorkflowButton.setFont(new java.awt.Font("Lucida Grande", 0, 10));
         nextWorkflowButton.setText("Next");
         nextWorkflowButton.setToolTipText("Broadcast data to the next workflow component");
@@ -313,7 +342,7 @@ public class GooseDialog extends javax.swing.JPanel {
                                 .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .add(nextWorkflowText)
                                 .add(1, 1, 1)
-                                .add(nextWorkflowDataText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 25, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(nextWorkflowDataText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 80, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                 .add(1, 1, 1)
                                 .add(nextWorkflowButton, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 25, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                         )
@@ -521,7 +550,12 @@ public class GooseDialog extends javax.swing.JPanel {
     private javax.swing.JLabel workflowTitleLabel;
     private javax.swing.JPanel workflowPanel;
     private javax.swing.JTextField nextWorkflowText;
-    private javax.swing.JTextField nextWorkflowDataText;
+    private javax.swing.JPanel nextWorkflowDataText;
+    private javax.swing.ButtonGroup dataRadioButtonGroup;
+    private javax.swing.JRadioButton radioButtonTuple;
+    private javax.swing.JRadioButton radioButtonMatrix;
+    private javax.swing.JRadioButton radioButtonNetwork;
+    private javax.swing.JRadioButton radioButtonNamelist;
     private javax.swing.JButton nextWorkflowButton;
 
     private javax.swing.JLabel broadcastLabel;
