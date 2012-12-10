@@ -1,13 +1,17 @@
 package org.systemsbiology.cytoscape.dialog;
 
+import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
+import cytoscape.CyNetwork;
+import cytoscape.Cytoscape;
+import org.apache.commons.collections.map.HashedMap;
 import org.systemsbiology.gaggle.core.GooseWorkflowManager;
-import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
-import org.systemsbiology.gaggle.core.datatypes.WorkflowComponent;
-import org.systemsbiology.gaggle.core.datatypes.WorkflowGaggleData;
+import org.systemsbiology.gaggle.core.datatypes.*;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.util.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 /**
  * @author skillcoy
@@ -15,6 +19,9 @@ import java.util.*;
 public class GooseDialog extends javax.swing.JPanel {
     GooseWorkflowManager workflowManager = new GooseWorkflowManager();
     Map<String, String> networkWorkflowActionMap = Collections.synchronizedMap(new HashMap<String, String>());
+    String[] nextWorkflowTexts = null;
+    int[] nextWorkflowDataTypes = null;
+    DefaultListModel listModel = new DefaultListModel();
 
     public enum GooseButton {
         CONNECT("Connect"), SHOW("Show"), HIDE("Hide"), TUPLE(
@@ -107,6 +114,21 @@ public class GooseDialog extends javax.swing.JPanel {
         button.setEnabled(enabled);
     }
 
+    public javax.swing.JList getWorkflowGeeseList() {
+        return this.nextWorkflowText;
+    }
+
+    public int getSelectedGooseDataType(int selectedGoose)
+    {
+        return nextWorkflowDataTypes[selectedGoose];
+    }
+
+    public void setWorkflowDataType(int selectedGoose)
+    {
+        int selecteddatatype = nextWorkflowDataTypes[selectedGoose];
+        dataRadioButtons[selecteddatatype].setSelected(true);
+    }
+
     public javax.swing.JComboBox getGooseChooser() {
         return this.gooseComboBox;
     }
@@ -143,24 +165,55 @@ public class GooseDialog extends javax.swing.JPanel {
     {
         if (action != null)
         {
-            String nextGeeseString = "";
             WorkflowComponent[] targets = action.getTargets();
             if (targets != null)
             {
+                this.nextWorkflowTexts = new String[targets.length];
+                this.nextWorkflowDataTypes = new int[targets.length];
                 for (int i = 0; i < targets.length; i++)
                 {
                     WorkflowComponent target = targets[i];
-                    if (target != null && target.getName() != null && target.getName().length() > 0)
-                        nextGeeseString += (target.getName() + "\n");
-                }
 
-                this.nextWorkflowText.setText(nextGeeseString);
+                    if (target != null && target.getName() != null && target.getName().length() > 0)
+                    {
+                        String subAction = (String)target.getParams().get(WorkflowComponent.ParamNames.SubTarget.getValue());
+                        String nextGeeseString = target.getName();
+                        if (subAction != null && subAction.length() > 0)
+                            nextGeeseString += (" " + subAction);
+                        this.nextWorkflowTexts[i] = nextGeeseString;
+                        listModel.addElement(nextGeeseString);
+                        String data = (String)target.getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue());
+                        if (data != null)
+                        {
+                            if (data.equals("matrix"))
+                            {
+                                this.nextWorkflowDataTypes[i] = 2;
+                                this.dataRadioButtons[2].setSelected(true);
+                            }
+                            else if (data.equals("tuple"))
+                            {
+                                this.nextWorkflowDataTypes[i] = 1;
+                                this.dataRadioButtons[1].setSelected(true);
+                            }
+                            else if (data.equals("namelist"))
+                            {
+                                this.nextWorkflowDataTypes[i] = 0;
+                                this.dataRadioButtons[0].setSelected(true);
+                            }
+                            else if (data.equals("network"))
+                            {
+                                this.nextWorkflowDataTypes[i] = 3;
+                                this.dataRadioButtons[3].setSelected(true);
+                            }
+                        }
+                    }
+                }
             }
         }
         else
         {
             // Reset the workflowText field
-            this.nextWorkflowText.setText("");
+            this.listModel.clear();
         }
     }
 
@@ -185,7 +238,7 @@ public class GooseDialog extends javax.swing.JPanel {
         return null;
     }
 
-    public int getNextWorkflowDataType()
+    /*public int getNextWorkflowDataType()
     {
         if (radioButtonNamelist.isSelected())
             return 0;
@@ -196,7 +249,7 @@ public class GooseDialog extends javax.swing.JPanel {
         if (radioButtonNetwork.isSelected())
             return 3;
         return -1;
-    }
+    } */
 
     /** This method is called from within the constructor to
      * initialize the form.
@@ -212,13 +265,24 @@ public class GooseDialog extends javax.swing.JPanel {
         hideButton = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
         workflowPanel = new javax.swing.JPanel();
-        nextWorkflowText = new javax.swing.JTextField();
+        nextWorkflowText = new javax.swing.JList(listModel);
+        nextWorkflowText.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // single selection
+        nextworkListScrollPanel = new JScrollPane(nextWorkflowText);
         nextWorkflowDataText= new javax.swing.JPanel(new java.awt.GridLayout(0, 2));
         dataRadioButtonGroup = new javax.swing.ButtonGroup();
-        radioButtonNamelist = new javax.swing.JRadioButton("List", true);
-        radioButtonTuple = new javax.swing.JRadioButton("Tuple", false);
-        radioButtonMatrix = new javax.swing.JRadioButton("Matrix", false);
-        radioButtonNetwork = new javax.swing.JRadioButton("Network", false);
+        for (int i = 0; i < 4; i++)
+        {
+            if (i == 0)
+                dataRadioButtons[i] = new JRadioButton("List", true);
+            else if (i == 1)
+                dataRadioButtons[i] = new JRadioButton("Tuple", false);
+            else if (i == 2)
+                dataRadioButtons[i] = new JRadioButton("Matrix", false);
+            else if (i == 3)
+                dataRadioButtons[i] = new JRadioButton("Network", false);
+            dataRadioButtonGroup.add(dataRadioButtons[i]);
+            nextWorkflowDataText.add(dataRadioButtons[i]);
+        }
         nextWorkflowButton = new javax.swing.JButton();
         jSeparator4 = new javax.swing.JSeparator();
         broadcastPanel = new javax.swing.JPanel();
@@ -307,17 +371,6 @@ public class GooseDialog extends javax.swing.JPanel {
         nextWorkflowDataText.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createTitledBorder(null, "Data Broadcast to the Next Workflow Component:", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION), "", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Lucida Grande", 0, 12)));
         nextWorkflowDataText.setFocusable(false);
 
-        dataRadioButtonGroup.add(radioButtonNamelist);
-        dataRadioButtonGroup.add(radioButtonMatrix);
-        dataRadioButtonGroup.add(radioButtonTuple);
-        dataRadioButtonGroup.add(radioButtonNetwork);
-
-        nextWorkflowDataText.add(radioButtonNamelist);
-        nextWorkflowDataText.add(radioButtonMatrix);
-        nextWorkflowDataText.add(radioButtonTuple);
-        nextWorkflowDataText.add(radioButtonNetwork);
-
-
         nextWorkflowButton.setFont(new java.awt.Font("Lucida Grande", 0, 10));
         nextWorkflowButton.setText("Next");
         nextWorkflowButton.setToolTipText("Broadcast data to the next workflow component");
@@ -330,7 +383,7 @@ public class GooseDialog extends javax.swing.JPanel {
                 workflowPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                         .add(workflowPanelLayout.createSequentialGroup()
                                 .add(workflowPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
-                                        .add(nextWorkflowText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 250, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                        .add(nextworkListScrollPanel, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 250, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                         .add(nextWorkflowDataText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 250, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                         .add(nextWorkflowButton, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 30, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                 )
@@ -340,7 +393,7 @@ public class GooseDialog extends javax.swing.JPanel {
                 workflowPanelLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                         .add(workflowPanelLayout.createSequentialGroup()
                                 .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .add(nextWorkflowText)
+                                .add(nextworkListScrollPanel, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 40, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                 .add(1, 1, 1)
                                 .add(nextWorkflowDataText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 80, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                 .add(1, 1, 1)
@@ -549,13 +602,11 @@ public class GooseDialog extends javax.swing.JPanel {
     // Variables declaration - do not modify
     private javax.swing.JLabel workflowTitleLabel;
     private javax.swing.JPanel workflowPanel;
-    private javax.swing.JTextField nextWorkflowText;
+    private javax.swing.JList nextWorkflowText;
+    private javax.swing.JScrollPane nextworkListScrollPanel;
     private javax.swing.JPanel nextWorkflowDataText;
     private javax.swing.ButtonGroup dataRadioButtonGroup;
-    private javax.swing.JRadioButton radioButtonTuple;
-    private javax.swing.JRadioButton radioButtonMatrix;
-    private javax.swing.JRadioButton radioButtonNetwork;
-    private javax.swing.JRadioButton radioButtonNamelist;
+    private javax.swing.JRadioButton dataRadioButtons[] = new JRadioButton[4];
     private javax.swing.JButton nextWorkflowButton;
 
     private javax.swing.JLabel broadcastLabel;

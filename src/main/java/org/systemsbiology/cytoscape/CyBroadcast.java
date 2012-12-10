@@ -1,5 +1,8 @@
 package org.systemsbiology.cytoscape;
 
+import EDU.oswego.cs.dl.util.concurrent.ThreadedExecutor;
+import com.sosnoski.util.array.ObjectArray;
+import com.sosnoski.util.array.StringArray;
 import cytoscape.CyEdge;
 import cytoscape.CyNetwork;
 import cytoscape.CyNode;
@@ -108,12 +111,24 @@ public class CyBroadcast {
     }
 
     private void broadcastTupleToWorkflow(String[] attrNames, CyGoose goose,
-                                         String requestID, GooseWorkflowManager workflowManager,
+                                         String requestID, int targetIndex,
+                                         Object syncObj,
+                                         GooseWorkflowManager workflowManager,
                                          WorkflowAction action) {
         GaggleTuple gaggleTuple = generateTuple(attrNames, goose);
-        for (int i = 0; i < action.getTargets().length; i++)
-            workflowManager.addSessionTargetData(requestID, i, gaggleTuple);
+        logger.info("Submitting tuple to workflow manager for request: " + requestID + " Index: " + targetIndex + " Target: " + action.getTargets()[targetIndex].getGooseName());
+        workflowManager.addSessionTargetData(requestID, targetIndex, gaggleTuple);
 
+        logger.info("broadcastTupleToWorkflow Notifying main thread...");
+        synchronized (syncObj) {
+            syncObj.notify();
+        }
+        /*if (workflowManager.CompleteWorkflowAction(gaggleBoss, requestID))
+        {
+            // Now we can clean up the UI
+            gDialog.setWorkflowUI(null);
+            gDialog.removeRequestNetwork(requestID);
+        } */
     }
 
     private void delegateProcessTuple(CyGoose goose, String targetGoose, AttrSelectAction okAction)
@@ -135,6 +150,7 @@ public class CyBroadcast {
 
     private GaggleTuple generateTuple(String[] attrNames, CyGoose goose)
     {
+        logger.info("Generate tuple...");
         if (getSelectedNodes(goose).size() <= 0) {
             showWarning("No nodes were selected for tuple broadcast.");
             return null;
@@ -204,30 +220,17 @@ public class CyBroadcast {
     public void broadcastDataMatrix(final CyGoose goose, final String targetGoose) {
         logger.info("broadcastDataMatrix()");
 
-        // dialog for user to select attributes for broadcast
         AttrSelectAction okAction = new AttrSelectAction() {
-                public void takeAction(String[] selectAttr) {
-                    broadcastDataMatrix(selectAttr, goose, targetGoose);
-                }
-            };
-
-        delegateProcessMatrix(goose, targetGoose, okAction);
-    }
-
-    private void broadcastDataMatrix(String[] condNames, CyGoose goose, String targetGoose) {
-        DataMatrix matrix = generateMatrix(condNames, goose);
-
-        try {
-            this.gaggleBoss.broadcastMatrix(goose.getName(), targetGoose, matrix);
-        } catch (Exception ex) {
-            String msg = "Failed to broadcast matrix to " + targetGoose;
-            showError(msg);
-            logger.error(msg, ex);
-        }
+            public void takeAction(String[] selectAttr) {
+                broadcastDataMatrix(selectAttr, goose, targetGoose);
+            }
+        };
+        delegateProcessMatrix(goose, targetGoose, okAction); //false, null, null, null);
     }
 
     private DataMatrix generateMatrix(String[] condNames, CyGoose goose)
     {
+        logger.info("Generating Matrix...");
         if (getSelectedNodes(goose).size() <= 0) {
             showWarning("No nodes were selected for Data Matrix broadcast.");
             return null;
@@ -264,7 +267,9 @@ public class CyBroadcast {
         return matrix;
     }
 
-    private void delegateProcessMatrix(CyGoose goose, String targetGoose, AttrSelectAction okAction)
+    private void delegateProcessMatrix(final CyGoose goose, final String targetGoose, AttrSelectAction okAction)
+                                       //boolean toWorkflow, final String requestID,
+                                       //final GooseWorkflowManager workflowManager, final WorkflowAction action)
     {
         if (getSelectedNodes(goose).size() == 0) {
             showWarning("No nodes selected for broadcast.");
@@ -280,6 +285,25 @@ public class CyBroadcast {
             if (Cytoscape.getNodeAttributes().getType(currentAttr) == CyAttributes.TYPE_FLOATING)
                 condNamesArrList.add(currentAttr);
         }
+
+        /*AttrSelectAction okAction = null;
+        if (!toWorkflow)
+        {
+            // dialog for user to select attributes for broadcast
+            okAction = new AttrSelectAction() {
+                public void takeAction(String[] selectAttr) {
+                    broadcastDataMatrix(selectAttr, goose, targetGoose);
+                }
+            };
+        }
+        else
+        {
+            okAction = new AttrSelectAction() {
+                public void takeAction(String[] selectAttr) {
+                    broadcastMatrixToWorkflow(selectAttr, goose, requestID, workflowManager, action);
+                }
+            };
+        } */
 
         // move everything from ArrayList to a String array
         String[] condNames = new String[condNamesArrList.size()];
@@ -297,13 +321,31 @@ public class CyBroadcast {
         }
     }
 
+    private void broadcastDataMatrix(String[] condNames, CyGoose goose, String targetGoose) {
+        DataMatrix matrix = generateMatrix(condNames, goose);
+
+        try {
+            this.gaggleBoss.broadcastMatrix(goose.getName(), targetGoose, matrix);
+        } catch (Exception ex) {
+            String msg = "Failed to broadcast matrix to " + targetGoose;
+            showError(msg);
+            logger.error(msg, ex);
+        }
+    }
+
     private void broadcastMatrixToWorkflow(String[] condNames, CyGoose goose,
-                                         String requestID, GooseWorkflowManager workflowManager,
+                                         String requestID, int targetIndex,
+                                         Object syncObj,
+                                         GooseWorkflowManager workflowManager,
                                          WorkflowAction action) {
         DataMatrix matrix = generateMatrix(condNames, goose);
-        for (int i = 0; i < action.getTargets().length; i++)
-            workflowManager.addSessionTargetData(requestID, i, matrix);
+        logger.info("Submitting matrix to Request: " + requestID + " Index: " + targetIndex + " Target: " + action.getTargets()[targetIndex].getGooseName());
+        workflowManager.addSessionTargetData(requestID, targetIndex, matrix);
 
+        logger.info("Broadcast matrix notify main thread");
+        synchronized (syncObj) {
+            syncObj.notify();
+        }
     }
 
     public void broadcastNetwork(CyGoose goose, String targetGoose) {
@@ -317,6 +359,159 @@ public class CyBroadcast {
             logger.error(ex.getMessage(), ex);
         }
     }
+
+    class TupleProcessingThread extends Thread
+    {
+        private CyGoose goose;
+        private AttrSelectAction myAction;
+
+        public TupleProcessingThread(CyGoose goose, AttrSelectAction okAction)
+        {
+            this.goose = goose;
+            this.myAction = okAction;
+        }
+
+        public void run()
+        {
+            delegateProcessTuple(this.goose, null, this.myAction);
+        }
+    }
+
+    class MatrixProcessingThread extends Thread
+    {
+        private CyGoose goose;
+        private AttrSelectAction myAction;
+        private Object syncObj;
+
+        public MatrixProcessingThread(CyGoose goose, AttrSelectAction okAction, Object syncObj)
+        {
+            this.goose = goose;
+            this.myAction = okAction;
+            this.syncObj = syncObj;
+        }
+
+        public void run()
+        {
+            delegateProcessMatrix(this.goose, null, this.myAction);
+            logger.info("Broadcast matrix thread notifying main thread...");
+            synchronized (syncObj) {
+                syncObj.notify();
+            }
+        }
+    }
+
+    class PrepareWorkflowResponseThread extends Thread
+    {
+        private WorkflowAction action;
+        private GooseWorkflowManager workflowManager;
+        private String requestID;
+        private CyGoose goose;
+
+        public PrepareWorkflowResponseThread(WorkflowAction action, CyGoose goose, GooseWorkflowManager workflowManager, String requestID)
+        {
+            this.goose = goose;
+            this.action = action;
+            this.workflowManager = workflowManager;
+            this.requestID = requestID;
+        }
+
+        public void run()
+        {
+            if (action.getTargets() != null && action.getTargets().length > 0)
+            {
+                for (int i = 0; i < action.getTargets().length; i++)
+                {
+                    WorkflowComponent target = action.getTargets()[i];
+                    String edgeType = (String)target.getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue());
+                    logger.info("Edge type: " + edgeType);
+                    if (edgeType.equals("namelist") || edgeType.equals("data"))
+                    {
+                        // Namelist
+                        Namelist namelist = generateNamelist(goose);
+                        if (namelist != null)
+                        {
+                            logger.info("Gaggle Namelist selected: " + namelist.getName());
+                            workflowManager.addSessionTargetData(requestID, i, namelist);
+                        }
+                    }
+                    else if (edgeType.equals("matrix"))
+                    {
+                        final Object syncObj = new Object();
+                        final int index = i;
+                        // Matrix
+                        AttrSelectAction okAction = new AttrSelectAction() {
+                            public void takeAction(String[] selectAttr) {
+                                broadcastMatrixToWorkflow(selectAttr, goose, requestID, index, syncObj, workflowManager, action);
+                            }
+                        };
+
+                        MatrixProcessingThread matrixthread = new MatrixProcessingThread(goose, okAction);
+                        matrixthread.start();
+
+                        try
+                        {
+                            synchronized (syncObj) {
+                              syncObj.wait();
+                              logger.info("Notified by delegateProcessMatrix");
+                            }
+                        }
+                        catch (Exception ex0)
+                        {
+                            logger.warning("Failed to wait on delegateProcessMatrix: " + ex0.getMessage());
+                            workflowManager.addSessionTargetData(requestID, i, null);
+                        }
+                    }
+                    else if (edgeType.equals("tuple"))
+                    {
+                        // Tuple
+                        final int index = i;
+                        final Object syncObj = new ObjectArray();
+                        AttrSelectAction okAction = new AttrSelectAction() {
+                            public void takeAction(String[] selectAttr) {
+                                broadcastTupleToWorkflow(selectAttr, goose, requestID, index, syncObj, workflowManager, action);
+                            }
+                        };
+
+                        TupleProcessingThread tuplethread = new TupleProcessingThread(goose,okAction);
+                        tuplethread.start();
+                        //delegateProcessTuple(goose, null, okAction);
+                        try
+                        {
+                            synchronized (syncObj) {
+                                syncObj.wait();
+                                logger.info("Notified by delegateProcessTuple");
+                            }
+                        }
+                        catch (Exception ex1)
+                        {
+                            logger.warning("Failed to wait on delegateProcessTuple: " + ex1.getMessage());
+                            workflowManager.addSessionTargetData(requestID, i, null);
+                        }
+                    }
+                    else if (edgeType.equals("network"))
+                    {
+                        // Parallel targets, we need to duplicate the data for each target
+                        Network gaggleNetwork = GenerateNetwork(goose);
+
+                        if (gaggleNetwork != null)
+                        {
+                            logger.info("Gaggle Network selected: " + gaggleNetwork.getName());
+                            workflowManager.addSessionTargetData(requestID, i, gaggleNetwork);
+                        }
+                    }
+                }
+
+                logger.info("Completing workflow action...");
+                if (workflowManager.CompleteWorkflowAction(gaggleBoss, requestID))
+                {
+                    // Now we can clean up the UI
+                    gDialog.setWorkflowUI(null);
+                    gDialog.removeRequestNetwork(requestID);
+                }
+            }
+        }
+    }
+
 
     /**
      * Handler for the next button to send data to the next component of the workflow
@@ -333,62 +528,10 @@ public class CyBroadcast {
             if (action != null)
             {
                 logger.info("Prepare workflow response data");
-
-                //GaggleData[] gaggleData = null;
-                if (action.getTargets() != null && action.getTargets().length > 0)
-                {
-                    int dataType = gDialog.getNextWorkflowDataType();
-                    if (dataType == 0)
-                    {
-                        // Namelist
-                        Namelist namelist = generateNamelist(goose);
-                        if (namelist != null)
-                        {
-                            logger.info("Gaggle Namelist selected: " + namelist.getName());
-                            for (int i = 0; i < action.getTargets().length; i++)
-                                workflowManager.addSessionTargetData(requestID, i, namelist);
-                        }
-                    }
-                    else if (dataType == 1)
-                    {
-                         // Matrix
-                        AttrSelectAction okAction = new AttrSelectAction() {
-                            public void takeAction(String[] selectAttr) {
-                                broadcastMatrixToWorkflow(selectAttr, goose, requestID, workflowManager, action);
-                            }
-                        };
-                        delegateProcessMatrix(goose, null, okAction);
-                    }
-                    else if (dataType == 2)
-                    {
-                         // Tuple
-                        AttrSelectAction okAction = new AttrSelectAction() {
-                            public void takeAction(String[] selectAttr) {
-                                broadcastTupleToWorkflow(selectAttr, goose, requestID, workflowManager, action);
-                            }
-                        };
-                        delegateProcessTuple(goose, null, okAction);
-                    }
-                    else if (dataType == 3)
-                    {
-                        // Parallel targets, we need to duplicate the data for each target
-                        Network gaggleNetwork = GenerateNetwork(goose);
-
-                        if (gaggleNetwork != null)
-                        {
-                            logger.info("Gaggle Network selected: " + gaggleNetwork.getName());
-                            for (int i = 0; i < action.getTargets().length; i++)
-                                workflowManager.addSessionTargetData(requestID, i, gaggleNetwork);
-                        }
-                    }
-                }
-
-                if (workflowManager.CompleteWorkflowAction(gaggleBoss, requestID))
-                {
-                    // Now we can clean up the UI
-                    gDialog.setWorkflowUI(null);
-                    gDialog.removeRequestNetwork(requestID);
-                }
+                // Put the processing in a thread to avoid UI frozen due to the logic that delegates handle Tuple and Matrix
+                // to their respective delegate functions
+                PrepareWorkflowResponseThread pwrt = new PrepareWorkflowResponseThread(action, goose, workflowManager, requestID);
+                pwrt.start();
             }
         }
     }

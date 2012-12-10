@@ -15,6 +15,7 @@ import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
 import org.systemsbiology.gaggle.core.Boss;
 import org.systemsbiology.gaggle.core.GooseWorkflowManager;
 import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
+import org.systemsbiology.gaggle.core.datatypes.WorkflowComponent;
 import org.systemsbiology.gaggle.geese.common.GaggleConnectionListener;
 import org.systemsbiology.gaggle.geese.common.GooseShutdownHook;
 import org.systemsbiology.gaggle.geese.common.RmiGaggleConnector;
@@ -30,6 +31,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 /**
  * Cytoscape-Gaggle Plugin.
@@ -241,10 +245,6 @@ implements PropertyChangeListener, GaggleConnectionListener,
             logger.info("=== Event " + Event.getPropertyName() + "===");
             CyGoose current = networkGeese.get(Cytoscape.getCurrentNetwork().getIdentifier());
             gDialog.setSpeciesText(current.getSpeciesName());
-            // Set the next workflow component text
-            String requestID = gDialog.getRequestID(Cytoscape.getCurrentNetwork().getIdentifier());
-            WorkflowAction action = workflowManager.getWorkflowAction(requestID);
-            gDialog.setWorkflowUI(action);
         }
     }
 
@@ -314,6 +314,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
         addBroadcastTupleAction();
         addConnectAction();
         addNextWorkflowAction();
+        addWorkflowListListener();
     }
 
     private void addBroadcastNameListAction() {
@@ -417,6 +418,30 @@ implements PropertyChangeListener, GaggleConnectionListener,
                     logger.warning("Couldn't find Goose for Network: " + Network.getIdentifier());
             }
         });
+    }
+
+    private void addWorkflowListListener()
+    {
+        logger.info("Add workflow list listener");
+        ListSelectionListener listSelectionListener = new ListSelectionListener() {
+            public void valueChanged(ListSelectionEvent listSelectionEvent) {
+                logger.info("First index: " + listSelectionEvent.getFirstIndex());
+                logger.info(", Last index: " + listSelectionEvent.getLastIndex());
+                boolean adjust = listSelectionEvent.getValueIsAdjusting();
+                logger.info(", Adjusting? " + adjust);
+                if (!adjust) {
+                    JList list = (JList) listSelectionEvent.getSource();
+                    int selections[] = list.getSelectedIndices();
+                    Object selectionValues[] = list.getSelectedValues();
+                    for (int i = 0, n = selections.length; i < n; i++) {
+                        logger.info("Selected goose index: " + selections[i]);
+                        gDialog.setWorkflowDataType(selections[i]);
+                    }
+                }
+            }
+        };
+        gDialog.getWorkflowGeeseList().addListSelectionListener(listSelectionListener);
+
     }
 
     private void reconnectAllGeese() {
