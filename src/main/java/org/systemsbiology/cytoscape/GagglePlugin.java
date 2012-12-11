@@ -245,6 +245,12 @@ implements PropertyChangeListener, GaggleConnectionListener,
             logger.info("=== Event " + Event.getPropertyName() + "===");
             CyGoose current = networkGeese.get(Cytoscape.getCurrentNetwork().getIdentifier());
             gDialog.setSpeciesText(current.getSpeciesName());
+            // Set the next workflow component text
+            String requestID = gDialog.getRequestID(Cytoscape.getCurrentNetwork().getIdentifier());
+            WorkflowAction action = workflowManager.getWorkflowAction(requestID);
+            if (action.getTargets() != null && action.getTargets().length > 0)
+                logger.info("Data type for target 0: " + action.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
+            gDialog.setWorkflowUI(action);
         }
     }
 

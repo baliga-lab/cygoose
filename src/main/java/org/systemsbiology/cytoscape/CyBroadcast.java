@@ -445,7 +445,7 @@ public class CyBroadcast {
                             }
                         };
 
-                        MatrixProcessingThread matrixthread = new MatrixProcessingThread(goose, okAction);
+                        MatrixProcessingThread matrixthread = new MatrixProcessingThread(goose, okAction, syncObj);
                         matrixthread.start();
 
                         try

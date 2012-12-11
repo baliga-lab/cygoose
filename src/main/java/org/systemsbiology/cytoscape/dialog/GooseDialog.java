@@ -168,6 +168,7 @@ public class GooseDialog extends javax.swing.JPanel {
             WorkflowComponent[] targets = action.getTargets();
             if (targets != null)
             {
+                this.listModel.clear();
                 this.nextWorkflowTexts = new String[targets.length];
                 this.nextWorkflowDataTypes = new int[targets.length];
                 for (int i = 0; i < targets.length; i++)
