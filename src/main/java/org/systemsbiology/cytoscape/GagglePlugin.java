@@ -1,5 +1,6 @@
 package org.systemsbiology.cytoscape;
 
+import com.install4j.runtime.installer.helper.Logger;
 import cytoscape.CyNetwork;
 import cytoscape.Cytoscape;
 import cytoscape.CytoscapeInit;
@@ -58,7 +59,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
     private static CyBroadcast broadcast;
     private static boolean pluginInitialized = false;
 
-    private static String ORIGINAL_GOOSE_NAME;
+    public static String ORIGINAL_GOOSE_NAME;
     protected static String myGaggleName;
     // keeps track of all the network ids key = network id  value = goose
     private static Map<String, CyGoose> networkGeese;
@@ -188,6 +189,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
                                 " event does not refer to the same networks!");
                     return;
                 } else {
+                    logger.info("Obtaining Goose for " + NewTitle.getNetworkIdentifier());
                     CyGoose goose = this.networkGeese.get(NewTitle.getNetworkIdentifier());
                     if (goose != null &&
                         !goose.getName().equals(NewTitle.getNetworkTitle())) {
@@ -196,6 +198,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
                                 this.gaggleBoss.renameGoose(goose.getName(),
                                                             NewTitle.getNetworkTitle());
                             Cytoscape.getNetwork(goose.getNetworkId()).setTitle(NewGooseName);
+                            logger.info("Goose renamed to " + goose.getName() + " " + goose.getNetworkId());
                         } catch (RemoteException re) {
                             re.printStackTrace();
                         }
@@ -213,10 +216,11 @@ implements PropertyChangeListener, GaggleConnectionListener,
 
             try {
                 CyGoose NewGoose = createNewGoose(net);
+                logger.info("Saved new goose " + NewGoose.getName() + " for " + net.getIdentifier());
                 networkGeese.put(net.getIdentifier(), NewGoose);
                 MiscUtil.updateGooseChooser(gDialog.getGooseChooser(),
-                                            "ADummyString",
-                                            NewGoose.getActiveGooseNames());
+                                        "ADummyString",
+                                        NewGoose.getActiveGooseNames());
             } catch (RemoteException ex) {
                 GagglePlugin.showDialogBox("Failed to create a new Goose for network " +
                                            net.getTitle(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -281,7 +285,10 @@ implements PropertyChangeListener, GaggleConnectionListener,
         logger.info("createNewGoose(): initial network name: " + Network.getTitle());
         CyGoose Goose = new CyGoose(gDialog);//, gaggleBoss);
         Goose.setNetworkId(Network.getIdentifier());
+        // Include the original goose name to the goose name for recording workflow purpose
+        logger.info("Create new goose get network title: " + Network.getTitle());
         Goose.setName(Network.getTitle());
+        //Goose.setName(ORIGINAL_GOOSE_NAME Network.getTitle() + "_" + CyGoose.instanceCount + "_" + );
         RmiGaggleConnector connector = new RmiGaggleConnector(Goose);
         connector.addListener(this);
         if (Network.getIdentifier().equals("0")) {
@@ -411,6 +418,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
                 CyGoose Goose = networkGeese.get(Network.getIdentifier());
                 if (Goose != null)
                 {
+                    logger.info("Obtained goose: " + Goose.getName() + " " + Goose.getNetworkId());
                     String requestID = gDialog.getRequestID(Network.getIdentifier());
                     if (requestID != null)
                     {

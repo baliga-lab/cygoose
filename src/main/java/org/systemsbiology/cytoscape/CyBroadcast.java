@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.*;
 
 /**
  *  @author Sarah Killcoyne, Wei-ju Wu
@@ -44,13 +45,36 @@ public class CyBroadcast {
         this.gaggleBoss = boss;
     }
 
+    private void recordDataUrl(String targetGoose)
+    {
+        if (gaggleBoss instanceof Boss3)
+        {
+            HashMap<String, String> sourceparams = new HashMap<String, String>();
+            String sourceUrl = Cytoscape.getCurrentSessionFileName();
+            if (sourceUrl != null && sourceUrl.length() > 0)
+            {
+                logger.info("Data uri: " + sourceUrl);
+                sourceparams.put(JSONConstants.WORKFLOW_COMPONENT_DATAURI, sourceUrl);
+            }
+            try
+            {
+                ((Boss3)gaggleBoss).recordAction(GagglePlugin.ORIGINAL_GOOSE_NAME, targetGoose, "", -1, sourceparams, null, null);
+            }
+            catch (Exception e)
+            {
+                logger.warn("Error record action: " + e.getMessage());
+            }
+        }
+    }
+
     // very basic, for the moment we will only broadcast by ID
     public void broadcastNameList(CyGoose goose, String targetGoose) {
         logger.info("broadcastNameList");
 
         Namelist namelist = generateNamelist(goose);
         try {
-            gaggleBoss.broadcastNamelist(goose.getName(), targetGoose, namelist);
+            gaggleBoss.broadcastNamelist((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, namelist);
+            recordDataUrl(targetGoose);
         } catch (Exception ex) {
             String msg = "Failed to broadcast list of names to " + targetGoose;
             showError(msg);
@@ -102,7 +126,8 @@ public class CyBroadcast {
         GaggleTuple gaggleTuple = generateTuple(attrNames, goose);
 
         try {
-            gaggleBoss.broadcastTuple(goose.getName(), targetGoose, gaggleTuple);
+            gaggleBoss.broadcastTuple((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, gaggleTuple);
+            recordDataUrl(targetGoose);
         } catch (Exception ex) {
             String msg = "Failed to broadcast map to " + targetGoose;
             showError(msg);
@@ -225,7 +250,7 @@ public class CyBroadcast {
                 broadcastDataMatrix(selectAttr, goose, targetGoose);
             }
         };
-        delegateProcessMatrix(goose, targetGoose, okAction); //false, null, null, null);
+        delegateProcessMatrix(goose, targetGoose, okAction, null); //false, null, null, null);
     }
 
     private DataMatrix generateMatrix(String[] condNames, CyGoose goose)
@@ -241,38 +266,53 @@ public class CyBroadcast {
         matrix.setColumnTitles(condNames);
         matrix.setSpecies(gDialog.getSpecies());
 
+        logger.info("Loop through all nodes...");
         // loop through all flagged nodes and construct a DataMatrix with
         // row=columnNames & column=condNames
-        for (CyNode currentSelectedNode : getSelectedNodes(goose)) {
-            double[] condVals = new double[condNames.length];
-            String nodeId = currentSelectedNode.getIdentifier();
-            for (int i = 0; i < condNames.length; i++) {
-                try {
-                    Double val =
-                            Cytoscape.getNodeAttributes().getDoubleAttribute(nodeId,
-                                    condNames[i]);
-                    if (val != null) condVals[i] = val.doubleValue();
-                } catch (Exception ex) {
-                    logger.warn("generateDataMatrix() error: incompatible data type for " +
-                            condNames[i], ex);
+        try
+        {
+            for (CyNode currentSelectedNode : getSelectedNodes(goose)) {
+                double[] condVals = new double[condNames.length];
+                String nodeId = currentSelectedNode.getIdentifier();
+                for (int i = 0; i < condNames.length; i++) {
+                    try {
+                        Double val =
+                                Cytoscape.getNodeAttributes().getDoubleAttribute(nodeId,
+                                        condNames[i]);
+                        if (val != null) condVals[i] = val.doubleValue();
+                    } catch (Exception ex) {
+                        logger.warn("generateDataMatrix() error: incompatible data type for " +
+                                condNames[i], ex);
+                    }
                 }
-            }
-            // use other attribute to identify node if selected by user
-            // At some point 'broadcastID' is meant to allow you to select the attribute name to broadcast as an ID, has not yet been added
-            nodeId = Cytoscape.getNodeAttributes().getStringAttribute(nodeId, broadcastID);
+                // use other attribute to identify node if selected by user
+                // At some point 'broadcastID' is meant to allow you to select the attribute name to broadcast as an ID, has not yet been added
+                nodeId = Cytoscape.getNodeAttributes().getStringAttribute(nodeId, broadcastID);
 
-            // add new row to DataMatrix
-            matrix.addRow(nodeId, condVals);
+                // add new row to DataMatrix
+                matrix.addRow(nodeId, condVals);
+            }
+            logger.info("Finished generating the matrix!");
+        }
+        catch (Exception ex) {
+            logger.error("Failed to generate matrix: " + ex.getMessage());
+            ex.printStackTrace();
         }
         return matrix;
     }
 
-    private void delegateProcessMatrix(final CyGoose goose, final String targetGoose, AttrSelectAction okAction)
+    private void delegateProcessMatrix(final CyGoose goose, final String targetGoose,
+                                       AttrSelectAction okAction, Object syncObj)
                                        //boolean toWorkflow, final String requestID,
                                        //final GooseWorkflowManager workflowManager, final WorkflowAction action)
     {
         if (getSelectedNodes(goose).size() == 0) {
             showWarning("No nodes selected for broadcast.");
+            logger.info("Broadcast matrix thread notifying main thread...");
+            if (syncObj != null)
+                synchronized (syncObj) {
+                    syncObj.notify();
+                }
             return;
         }
 
@@ -307,9 +347,12 @@ public class CyBroadcast {
 
         // move everything from ArrayList to a String array
         String[] condNames = new String[condNamesArrList.size()];
+        logger.info("Condition names array size: " + condNamesArrList.size());
         condNamesArrList.toArray(condNames);
 
         if (condNames.length > 0) {
+            if (okAction != null)
+                logger.info("Matrix Dialog OK Action: " + okAction.toString());
             CyAttrDialog dialog = new CyAttrDialog(condNames, okAction,
                     CyAttrDialog.MULTIPLE_SELECT);
             dialog.setDialogText(broadcastStr);
@@ -325,7 +368,8 @@ public class CyBroadcast {
         DataMatrix matrix = generateMatrix(condNames, goose);
 
         try {
-            this.gaggleBoss.broadcastMatrix(goose.getName(), targetGoose, matrix);
+            this.gaggleBoss.broadcastMatrix((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, matrix);
+            recordDataUrl(targetGoose);
         } catch (Exception ex) {
             String msg = "Failed to broadcast matrix to " + targetGoose;
             showError(msg);
@@ -354,7 +398,8 @@ public class CyBroadcast {
         Network gaggleNetwork = GenerateNetwork(goose);
         logger.debug("in broadcastnetwork, species is " + gaggleNetwork.getSpecies());
         try {
-            this.gaggleBoss.broadcastNetwork(goose.getName(), targetGoose, gaggleNetwork);
+            this.gaggleBoss.broadcastNetwork((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, gaggleNetwork);
+            recordDataUrl(targetGoose);
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
         }
@@ -392,11 +437,7 @@ public class CyBroadcast {
 
         public void run()
         {
-            delegateProcessMatrix(this.goose, null, this.myAction);
-            logger.info("Broadcast matrix thread notifying main thread...");
-            synchronized (syncObj) {
-                syncObj.notify();
-            }
+            delegateProcessMatrix(this.goose, null, this.myAction, this.syncObj);
         }
     }
 
@@ -465,7 +506,7 @@ public class CyBroadcast {
                     {
                         // Tuple
                         final int index = i;
-                        final Object syncObj = new ObjectArray();
+                        final Object syncObj = new Object();
                         AttrSelectAction okAction = new AttrSelectAction() {
                             public void takeAction(String[] selectAttr) {
                                 broadcastTupleToWorkflow(selectAttr, goose, requestID, index, syncObj, workflowManager, action);

@@ -1,6 +1,7 @@
 package org.systemsbiology.cytoscape.dialog;
 
 import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
+import com.sosnoski.util.array.StringArray;
 import cytoscape.CyNetwork;
 import cytoscape.Cytoscape;
 import org.apache.commons.collections.map.HashedMap;
@@ -226,10 +227,24 @@ public class GooseDialog extends javax.swing.JPanel {
         }
     }
 
-    public void addRequestNetwork(String NetworkId, String requestID)
+    public void addRequestNetwork(String NetworkId, String requestID, boolean override)
     {
         if (NetworkId != null && requestID != null)
-            networkWorkflowActionMap.put(NetworkId, requestID);
+        {
+            if ((networkWorkflowActionMap.containsKey(NetworkId) && override)
+                || !networkWorkflowActionMap.containsKey(NetworkId))
+            {
+                networkWorkflowActionMap.put(NetworkId, requestID);
+            }
+        }
+    }
+
+    public void modifyRequestNetwork(String oldNetworkId, String newNetworkId)
+    {
+        if (networkWorkflowActionMap.containsKey(oldNetworkId))
+        {
+            networkWorkflowActionMap.put(newNetworkId, networkWorkflowActionMap.get(oldNetworkId));
+        }
     }
 
     public String getRequestID(String NetworkId)
