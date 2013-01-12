@@ -3,6 +3,7 @@ package org.systemsbiology.cytoscape;
 import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
 import com.install4j.runtime.installer.helper.Logger;
 import cytoscape.data.Semantics;
+import cytoscape.data.readers.CytoscapeSessionReader;
 import cytoscape.util.URLUtil;
 import cytoscape.util.export.BitmapExporter;
 import cytoscape.view.CyNetworkView;
@@ -629,6 +630,21 @@ public class CyGoose implements Goose3 {
                                 {
                                     logger.error(e.getMessage());
                                     e.printStackTrace();
+
+                                    try
+                                    {
+                                        URL sessionFileUrl = new URL(dataurl);
+                                        CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(sessionFileUrl);
+                                        sessionReader.read();
+                                    }
+                                    catch (javax.xml.bind.JAXBException xmlex)
+                                    {
+                                        logger.error("Encountered JAXBException " + xmlex.getErrorCode());
+                                    }
+                                    catch (Exception e2)
+                                    {
+                                        logger.error("Failed to open session file..." + e2.getMessage());
+                                    }
                                 }
                             }
                         }
