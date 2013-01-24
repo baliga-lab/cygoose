@@ -11,6 +11,7 @@ import cytoscape.layout.CyLayouts;
 import cytoscape.plugin.CytoscapePlugin;
 import cytoscape.view.cytopanels.CytoPanel;
 import cytoscape.view.CytoscapeDesktop;
+import org.biojava.bio.symbol.IntegerAlphabet;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
 import org.systemsbiology.gaggle.core.Boss;
@@ -306,6 +307,33 @@ implements PropertyChangeListener, GaggleConnectionListener,
         Network.setTitle(Goose.getName());
         gaggleBoss = (org.systemsbiology.gaggle.core.Boss3)connector.getBoss();
         Goose.setBoss(gaggleBoss);
+        if (gaggleBoss instanceof org.systemsbiology.gaggle.core.Boss3)
+        {
+            // Get process id and send it to boss
+            try
+            {
+                //String workDir = System.getProperty("user.dir");
+                //workDir += ("/" + ORIGINAL_GOOSE_NAME + ".exe");
+
+                //java.lang.management.RuntimeMXBean runtime = java.lang.management.ManagementFactory.getRuntimeMXBean();
+                //java.lang.reflect.Field jvm = runtime.getClass().getDeclaredField("jvm");
+                //jvm.setAccessible(true);
+                //sun.management.VMManagement mgmt = (sun.management.VMManagement) jvm.get(runtime);
+                //java.lang.reflect.Method pid_method = mgmt.getClass().getDeclaredMethod("getProcessId");
+                //pid_method.setAccessible(true);
+                //int pid = (Integer) pid_method.invoke(mgmt);
+                //logger.info("Goose process id: " + pid);
+
+                logger.info("Goose query string: Exe.Name.ct=cytoscape");
+                String query = "Exe.Name.ct=Cytoscape";
+                ((org.systemsbiology.gaggle.core.Boss3)gaggleBoss).recordAction("Cytoscape",
+                        null, query, -1, null, null, null);
+            }
+            catch (Exception e)
+            {
+                logger.error("Failed to record app name " + e.getMessage());
+            }
+        }
         return Goose;
     }
 

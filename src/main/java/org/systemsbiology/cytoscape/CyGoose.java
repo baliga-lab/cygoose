@@ -472,6 +472,20 @@ public class CyGoose implements Goose3 {
      */
     public void handleNameList(String source, Namelist namelist)
         throws RemoteException {
+        String networkId = this.getNetworkId();
+        /*if (networkId != null && !networkId.equals("0"))
+        {
+            // This is not the "base" goose, we thus need to get its corresponding file
+            // and record it
+            HashMap<String, String> sourceparams = new HashMap<String, String>();
+            String sourceUrl = this. Cytoscape.getCurrentSessionFileName();
+            if (sourceUrl != null && sourceUrl.length() > 0)
+            {
+                logger.info("Data uri: " + sourceUrl);
+                sourceparams.put(JSONConstants.WORKFLOW_COMPONENT_DATAURI, sourceUrl);
+            }
+            ((Boss3)gaggleBoss).recordAction(source, GagglePlugin.ORIGINAL_GOOSE_NAME, "", -1, sourceparams, null, null);
+        } */
         processNameList(this.getNetworkId(), source, namelist, false);
     }
 
@@ -703,8 +717,10 @@ public class CyGoose implements Goose3 {
                         Boss3 boss = (Boss3)gaggleBoss;
 
                         BitmapExporter exporter = new BitmapExporter("jpg", 0.5);
-                        String exportfilename = "/temp/" + requestID + ".jpg";
-                        FileOutputStream output = new FileOutputStream(exportfilename);
+                        File exportFile = File.createTempFile(requestID, ".jpg");
+                        String exportfilename = exportFile.getAbsolutePath();
+                        logger.info("Export file path: " + exportfilename);
+                        FileOutputStream output =  new FileOutputStream(exportFile);
                         CyNetworkView view = Cytoscape.getNetworkView(NetworkId);
                         if (view != null)
                             exporter.export(view, output);
