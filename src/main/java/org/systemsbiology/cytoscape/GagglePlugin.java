@@ -295,7 +295,15 @@ implements PropertyChangeListener, GaggleConnectionListener,
         if (Network.getIdentifier().equals("0")) {
             new GooseShutdownHook(connector);
         }
-
+        else
+        {
+            String workflowRequestID =  gDialog.getRequestID("0");
+            if (workflowRequestID != null && workflowRequestID.length() > 0)
+            {
+                // HACK HACK associate the new goose with the workflow request ID
+                gDialog.addRequestNetwork(Network.getIdentifier(), workflowRequestID, true);
+            }
+        }
         try {
             connector.connectToGaggle();
         } catch (Exception ex) {

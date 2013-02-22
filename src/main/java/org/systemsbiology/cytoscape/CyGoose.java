@@ -473,19 +473,6 @@ public class CyGoose implements Goose3 {
     public void handleNameList(String source, Namelist namelist)
         throws RemoteException {
         String networkId = this.getNetworkId();
-        /*if (networkId != null && !networkId.equals("0"))
-        {
-            // This is not the "base" goose, we thus need to get its corresponding file
-            // and record it
-            HashMap<String, String> sourceparams = new HashMap<String, String>();
-            String sourceUrl = this. Cytoscape.getCurrentSessionFileName();
-            if (sourceUrl != null && sourceUrl.length() > 0)
-            {
-                logger.info("Data uri: " + sourceUrl);
-                sourceparams.put(JSONConstants.WORKFLOW_COMPONENT_DATAURI, sourceUrl);
-            }
-            ((Boss3)gaggleBoss).recordAction(source, GagglePlugin.ORIGINAL_GOOSE_NAME, "", -1, sourceparams, null, null);
-        } */
         processNameList(this.getNetworkId(), source, namelist, false);
     }
 
@@ -594,14 +581,14 @@ public class CyGoose implements Goose3 {
 
             // Set the next workflow component text
             if (workflowAction.getTargets() != null && workflowAction.getTargets().length > 0)
-                logger.info("Data type for target 0: " + workflowAction.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
+                logger.info("Data type for " + workflowAction.getTargets()[0].getGooseName() + ": " + workflowAction.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
             this.gDialog.setWorkflowUI(workflowAction);
             String requestID = this.gDialog.getWorkflowManager().addSession(workflowAction);
             logger.info("WorkflowAction RequestId: " + requestID);
             String NetworkId = null;
 
             ArrayList<Object> datalist = (ArrayList<Object>)workflowAction.getSource().getParams().get(WorkflowComponent.ParamNames.Data.getValue());
-            if (datalist != null)
+            if (datalist != null && datalist.size() > 0 )
             {
                 logger.info("Data list has " + datalist.size() + " members");
                 // We first process all the string data
@@ -666,6 +653,24 @@ public class CyGoose implements Goose3 {
                 }
 
                 logger.info("Handling Gaggle data types for" + Cytoscape.getCurrentNetwork().getIdentifier());
+                String srcCmd = workflowAction.getSource().getCommandUri();
+                if (srcCmd != null)
+                {
+                    srcCmd = srcCmd.toLowerCase().trim();
+                    if (srcCmd.endsWith(".jnlp"))
+                    {
+                        try
+                        {
+                            // if started from jnlp, wait for the network to be loaded
+                            // before processing workflowaction data
+                            Thread.sleep(10000);
+                        }
+                        catch (Exception ee)
+                        {
+                            logger.warn("Failed to sleep: " + ee.getMessage());
+                        }
+                    }
+                }
                 for (int j = 0; j < datalist.size(); j++)
                 {
                     Object data = datalist.get(j);
@@ -704,6 +709,18 @@ public class CyGoose implements Goose3 {
                     }
                 }
             }
+            else
+            {
+                logger.info("Empty data received");
+                CyNetwork Network = Cytoscape.getCurrentNetwork();
+                if (Network != null)
+                {
+                    NetworkId = Network.getIdentifier();
+                    logger.info("Network ID: " + NetworkId);
+                }
+            }
+
+            logger.info("Checking NetworkId...");
             if (NetworkId != null)
             {
                 logger.info("Add WorkflowAction " + requestID + " of Network " + NetworkId + " to Hashmap");

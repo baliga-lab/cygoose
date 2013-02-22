@@ -51,18 +51,20 @@ public class CyBroadcast {
         {
             HashMap<String, String> sourceparams = new HashMap<String, String>();
             String sourceUrl = Cytoscape.getCurrentSessionFileName();
+            logger.info("Current session file name: " + sourceUrl);
             if (sourceUrl != null && sourceUrl.length() > 0)
             {
                 logger.info("Data uri: " + sourceUrl);
                 sourceparams.put(JSONConstants.WORKFLOW_COMPONENT_DATAURI, sourceUrl);
-            }
-            try
-            {
-                ((Boss3)gaggleBoss).recordAction(GagglePlugin.ORIGINAL_GOOSE_NAME, targetGoose, "", -1, sourceparams, null, null);
-            }
-            catch (Exception e)
-            {
-                logger.warn("Error record action: " + e.getMessage());
+
+                try
+                {
+                    ((Boss3)gaggleBoss).recordAction(GagglePlugin.ORIGINAL_GOOSE_NAME, targetGoose, "", -1, sourceparams, null, null);
+                }
+                catch (Exception e)
+                {
+                    logger.warn("Error record action: " + e.getMessage());
+                }
             }
         }
     }
@@ -74,6 +76,7 @@ public class CyBroadcast {
         Namelist namelist = generateNamelist(goose);
         try {
             gaggleBoss.broadcastNamelist((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, namelist);
+            // TODO: need to handle the case when a goose broadcast to other goose INSIDE cytoscape
             recordDataUrl(targetGoose);
         } catch (Exception ex) {
             String msg = "Failed to broadcast list of names to " + targetGoose;
