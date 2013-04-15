@@ -573,6 +573,12 @@ public class CyGoose implements Goose3 {
         processNetwork(this.getNetworkId(), source, gNetwork, false);
 		}
 
+    public GaggleGooseInfo getGooseInfo() throws RemoteException
+    {
+        logger.info("Getting gaggle goose info: " + this.gDialog.getWorkflowManager().getGooseInfo());
+        return this.gDialog.getWorkflowManager().getGooseInfo();
+    }
+
     public void handleWorkflowAction(org.systemsbiology.gaggle.core.datatypes.WorkflowAction workflowAction) throws RemoteException
     {
         if (workflowAction != null)
@@ -605,14 +611,23 @@ public class CyGoose implements Goose3 {
                         {
                             try {
                                 logger.info("Try to create view from file" + dataurl);
-                                CyNetwork network = Cytoscape.createNetworkFromFile(dataurl, true);
-                                //String title = (network.getTitle() + "_" + instanceCount);
-                                //network.setTitle(title);
-                                NetworkId = network.getIdentifier(); // + "_" + instanceCount);
-                                //instanceCount++;
-                                //network.setIdentifier(NetworkId);
-                                //logger.info("Network title: " + title);
-                                //logger.info("NetworkId: " + NetworkId);
+                                String[] urls = dataurl.split(";");
+                                for (int j = 0; j < urls.length; j++)
+                                {
+                                    String url = urls[j];
+                                    if (url.length() > 0 && !url.equals("NONE"))
+                                    {
+                                        logger.info("Open network from " + url);
+                                        CyNetwork network = Cytoscape.createNetworkFromFile(url, true);
+                                        //String title = (network.getTitle() + "_" + instanceCount);
+                                        //network.setTitle(title);
+                                        NetworkId = network.getIdentifier(); // + "_" + instanceCount);
+                                        //instanceCount++;
+                                        //network.setIdentifier(NetworkId);
+                                        //logger.info("Network title: " + title);
+                                        //logger.info("NetworkId: " + NetworkId);
+                                    }
+                                }
                             }
                             catch (Exception e)
                             {
