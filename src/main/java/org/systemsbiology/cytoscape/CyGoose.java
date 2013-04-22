@@ -2,8 +2,10 @@ package org.systemsbiology.cytoscape;
 
 import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
 import com.install4j.runtime.installer.helper.Logger;
+import cytoscape.actions.SaveSessionAction;
 import cytoscape.data.Semantics;
 import cytoscape.data.readers.CytoscapeSessionReader;
+import cytoscape.data.writers.CytoscapeSessionWriter;
 import cytoscape.util.URLUtil;
 import cytoscape.util.export.BitmapExporter;
 import cytoscape.view.CyNetworkView;
@@ -792,6 +794,37 @@ public class CyGoose implements Goose3 {
                     }
                 }
             }
+        }
+    }
+
+    public void saveState(String directory, String filePrefix)
+    {
+        if (directory != null && directory.length() > 0 && filePrefix != null && filePrefix.length() > 0)
+        {
+            String fullpath = directory + File.separator + filePrefix + "_" + UUID.randomUUID().toString() + "_Cytoscape.cys";
+            logger.info("Save state to " + fullpath);
+            CytoscapeSessionWriter sessionWriter = new CytoscapeSessionWriter(fullpath);
+            try
+            {
+                sessionWriter.writeSessionToDisk();
+            }
+            catch (Exception e)
+            {
+                logger.error("Failed to save session file " + e.getMessage());
+            }
+        }
+    }
+
+    public void loadState(String restorefilename)
+    {
+        try
+        {
+            CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(restorefilename);
+            sessionReader.read();
+        }
+        catch (Exception e)
+        {
+            logger.error("Failed to load session file " + e.getMessage());
         }
     }
 
