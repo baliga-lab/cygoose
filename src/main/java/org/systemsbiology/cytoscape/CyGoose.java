@@ -3,9 +3,12 @@ package org.systemsbiology.cytoscape;
 import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
 import com.install4j.runtime.installer.helper.Logger;
 import cytoscape.actions.SaveSessionAction;
+import cytoscape.data.ImportHandler;
 import cytoscape.data.Semantics;
 import cytoscape.data.readers.CytoscapeSessionReader;
+import cytoscape.data.readers.GraphReader;
 import cytoscape.data.writers.CytoscapeSessionWriter;
+import cytoscape.layout.LayoutAlgorithm;
 import cytoscape.util.URLUtil;
 import cytoscape.util.export.BitmapExporter;
 import cytoscape.view.CyNetworkView;
@@ -435,6 +438,7 @@ public class CyGoose implements Goose3 {
 
         //if (this.getNetworkId() == null || this.getNetworkId().equals("0") || createNewNetwork) {
         if (NetworkId == null || NetworkId.equals("0") || createNewNetwork) {
+            logger.info("Network set size: " + Cytoscape.getNetworkSet().size());
             if (Cytoscape.getNetworkSet().size() <= 0 || createNewNetwork) {
                 System.out.println("  --Null network");
                 String title = namelist.getName();
@@ -451,6 +455,7 @@ public class CyGoose implements Goose3 {
                 Cytoscape.getNetworkView(NewNet.getIdentifier()).redrawGraph(true, true);
             } else  {
                 // handle on all networks
+                logger.info("Handle on all networks");
                 for (Object cyNetwork: Cytoscape.getNetworkSet())
                 {
                     selectNodesEdges( (CyNetwork) cyNetwork, names );
@@ -611,14 +616,56 @@ public class CyGoose implements Goose3 {
                         logger.info(dataurl);
                         if (dataurl.length() > 0)
                         {
-                            try {
-                                logger.info("Try to create view from file" + dataurl);
-                                String[] urls = dataurl.split(";");
-                                for (int j = 0; j < urls.length; j++)
+                            logger.info("Try to create view from file" + dataurl);
+                            String[] urls = dataurl.split(";");
+                            for (int j = 0; j < urls.length; j++)
+                            {
+                                String url = urls[j];
+                                boolean imported = false;
+                                if (url.length() > 0 && !url.equals("NONE"))
                                 {
-                                    String url = urls[j];
-                                    if (url.length() > 0 && !url.equals("NONE"))
-                                    {
+                                    try {
+                                        if (url.toLowerCase().endsWith(".txt"))
+                                        {
+                                            // Assume this is a text file contains a namelist
+                                            Namelist namelist = (Namelist)this.gDialog.getWorkflowManager().ProcessTextFile(url);
+                                            this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), namelist, false);
+                                            imported = true;
+                                        }
+
+                                        /*ImportHandler importHandler = Cytoscape.getImportHandler();
+                                        if (importHandler != null)
+                                        {
+                                            logger.info("Get graph reader from file string " + url);
+                                            GraphReader greader = importHandler.getReader(url);
+                                            if (greader == null)
+                                            {
+                                                logger.info("Try to get graph reader from url");
+                                                URL furl = new URL(dataurl);
+                                                greader = importHandler.getReader(furl);
+                                            }
+
+                                            if (greader != null)
+                                            {
+                                                logger.info("Graph reader importing...");
+                                                greader.read();
+                                                logger.info("Graph reader get layout algorithm...");
+                                                CyLayoutAlgorithm algo = greader.getLayoutAlgorithm();
+
+                                                CyNetwork network = Cytoscape.createNetwork(greader, true, null);
+                                                CyNetworkView view = Cytoscape.getNetworkView(network.getIdentifier());
+                                                algo.doLayout(view);
+                                                imported = true;
+                                            }
+                                        } */
+                                    }
+                                    catch (Exception eimp) {
+                                        logger.warning("Failed to import network: " + eimp.getMessage());
+                                    }
+
+                                    if (imported) continue;
+
+                                    try {
                                         logger.info("Open network from " + url);
                                         CyNetwork network = Cytoscape.createNetworkFromFile(url, true);
                                         //String title = (network.getTitle() + "_" + instanceCount);
@@ -629,42 +676,44 @@ public class CyGoose implements Goose3 {
                                         //logger.info("Network title: " + title);
                                         //logger.info("NetworkId: " + NetworkId);
                                     }
+                                    catch (Exception e)
+                                    {
+                                        logger.error(e.getMessage());
+                                        e.printStackTrace();
+
+                                        try
+                                        {
+                                            logger.info("Try to create view from url" + dataurl);
+                                            URL fileurl = new URL(dataurl);
+                                            CyNetwork network = Cytoscape.createNetworkFromURL(fileurl, true);
+                                            NetworkId = network.getIdentifier();
+                                            logger.info("NetworkId: " + NetworkId);
+                                        }
+                                        catch (Exception e1)
+                                        {
+                                            logger.error(e.getMessage());
+                                            e.printStackTrace();
+
+                                            try
+                                            {
+                                                URL sessionFileUrl = new URL(dataurl);
+                                                CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(sessionFileUrl);
+                                                sessionReader.read();
+                                            }
+                                            catch (javax.xml.bind.JAXBException xmlex)
+                                            {
+                                                logger.error("Encountered JAXBException " + xmlex.getErrorCode());
+                                            }
+                                            catch (Exception e2)
+                                            {
+                                                logger.error("Failed to open session file..." + e2.getMessage());
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            catch (Exception e)
-                            {
-                                logger.error(e.getMessage());
-                                e.printStackTrace();
 
-                                try
-                                {
-                                    logger.info("Try to create view from url" + dataurl);
-                                    URL url = new URL(dataurl);
-                                    CyNetwork network = Cytoscape.createNetworkFromURL(url, true);
-                                    NetworkId = network.getIdentifier();
-                                    logger.info("NetworkId: " + NetworkId);
-                                }
-                                catch (Exception e1)
-                                {
-                                    logger.error(e.getMessage());
-                                    e.printStackTrace();
 
-                                    try
-                                    {
-                                        URL sessionFileUrl = new URL(dataurl);
-                                        CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(sessionFileUrl);
-                                        sessionReader.read();
-                                    }
-                                    catch (javax.xml.bind.JAXBException xmlex)
-                                    {
-                                        logger.error("Encountered JAXBException " + xmlex.getErrorCode());
-                                    }
-                                    catch (Exception e2)
-                                    {
-                                        logger.error("Failed to open session file..." + e2.getMessage());
-                                    }
-                                }
-                            }
                         }
                     }
                 }
