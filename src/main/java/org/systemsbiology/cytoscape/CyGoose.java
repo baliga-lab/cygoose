@@ -12,6 +12,7 @@ import cytoscape.layout.LayoutAlgorithm;
 import cytoscape.util.URLUtil;
 import cytoscape.util.export.BitmapExporter;
 import cytoscape.view.CyNetworkView;
+import cytoscape.view.CytoscapeDesktop;
 import cytoscape.visual.mappings.ObjectMapping;
 import cytoscape.visual.parsers.StringParser;
 import org.apache.commons.collections.iterators.ArrayListIterator;
@@ -93,7 +94,9 @@ public class CyGoose implements Goose3 {
     private String broadcastId;
     private String targetGoose = "Boss";
     private String species;
-    //private WorkflowAction wfaction;
+    private boolean isRecording = false;
+    private String actionRecordingFile = "";
+    private PrintWriter actionRecordingFileWriter;
 
     private static void print(String s) { System.out.println(s); }
 
@@ -592,259 +595,314 @@ public class CyGoose implements Goose3 {
         {
             logger.info("  --Workflow Action from " + workflowAction.getSource().getName());
 
-            // Set the next workflow component text
-            if (workflowAction.getTargets() != null && workflowAction.getTargets().length > 0)
-                logger.info("Data type for " + workflowAction.getTargets()[0].getGooseName() + ": " + workflowAction.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
-            this.gDialog.setWorkflowUI(workflowAction);
-            String requestID = this.gDialog.getWorkflowManager().addSession(workflowAction);
-            logger.info("WorkflowAction RequestId: " + requestID);
-            String NetworkId = null;
-
-            ArrayList<Object> datalist = (ArrayList<Object>)workflowAction.getSource().getParams().get(WorkflowComponent.ParamNames.Data.getValue());
-            if (datalist != null && datalist.size() > 0 )
+            try
             {
-                logger.info("Data list has " + datalist.size() + " members");
-                // We first process all the string data
-                for (int i = 0; i < datalist.size(); i++)
+                // Set the next workflow component text
+                if (workflowAction.getTargets() != null && workflowAction.getTargets().length > 0)
+                    logger.info("Data type for " + workflowAction.getTargets()[0].getGooseName() + ": " + workflowAction.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
+                this.gDialog.setWorkflowUI(workflowAction);
+                String requestID = this.gDialog.getWorkflowManager().addSession(workflowAction);
+                logger.info("WorkflowAction RequestId: " + requestID);
+                String NetworkId = null;
+
+                ArrayList<Object> datalist = (ArrayList<Object>)workflowAction.getSource().getParams().get(WorkflowComponent.ParamNames.Data.getValue());
+                if (datalist != null && datalist.size() > 0 )
                 {
-                    Object data = datalist.get(i);
+                    logger.info("Data list has " + datalist.size() + " members");
+                    // We first process all the string data
+                    for (int i = 0; i < datalist.size(); i++)
+                    {
+                        Object data = datalist.get(i);
 
-                    if (data instanceof String) {
-                        logger.info("  --Workflow Action from " + workflowAction.getSource().getName());
-                        // It's an initialization action, where the data is stored in source's param
-                        String dataurl = (String)data;
-                        logger.info(dataurl);
-                        if (dataurl.length() > 0)
-                        {
-                            logger.info("Try to create view from file" + dataurl);
-                            String[] urls = dataurl.split(";");
-                            for (int j = 0; j < urls.length; j++)
+                        if (data instanceof String) {
+                            logger.info("  --Workflow Action from " + workflowAction.getSource().getName());
+                            // It's an initialization action, where the data is stored in source's param
+                            String dataurl = (String)data;
+                            logger.info(dataurl);
+                            if (dataurl.length() > 0)
                             {
-                                String url = urls[j];
-                                boolean imported = false;
-                                if (url.length() > 0 && !url.equals("NONE"))
+                                // First check if it is a action recording file
+                                /*try
                                 {
-                                    try {
-                                        if (url.toLowerCase().endsWith(".txt"))
-                                        {
-                                            // Assume this is a text file contains a namelist
-                                            Namelist namelist = (Namelist)this.gDialog.getWorkflowManager().ProcessTextFile(url);
-                                            this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), namelist, false);
-                                            imported = true;
-                                        }
+                                    logger.info("Clicking the select first neibor menu item");
+                                    JMenuItem fileOpenSubMenu = Cytoscape.getDesktop().getCyMenus().getFileMenu().getItem(1);
+                                    fileOpenSubMenu.doClick();
+                                }
+                                catch (Exception e0) {
+                                    logger.warning("Failed to click menu " + e0.getMessage());
+                                } */
 
-                                        /*ImportHandler importHandler = Cytoscape.getImportHandler();
-                                        if (importHandler != null)
-                                        {
-                                            logger.info("Get graph reader from file string " + url);
-                                            GraphReader greader = importHandler.getReader(url);
-                                            if (greader == null)
+
+                                logger.info("Try to create view from file" + dataurl);
+                                String[] urls = dataurl.split(";");
+                                for (int j = 0; j < urls.length; j++)
+                                {
+                                    String url = urls[j];
+                                    boolean imported = false;
+                                    if (url.length() > 0 && !url.equals("NONE"))
+                                    {
+                                        try {
+                                            if (url.toLowerCase().endsWith(".txt"))
                                             {
-                                                logger.info("Try to get graph reader from url");
-                                                URL furl = new URL(dataurl);
-                                                greader = importHandler.getReader(furl);
-                                            }
-
-                                            if (greader != null)
-                                            {
-                                                logger.info("Graph reader importing...");
-                                                greader.read();
-                                                logger.info("Graph reader get layout algorithm...");
-                                                CyLayoutAlgorithm algo = greader.getLayoutAlgorithm();
-
-                                                CyNetwork network = Cytoscape.createNetwork(greader, true, null);
-                                                CyNetworkView view = Cytoscape.getNetworkView(network.getIdentifier());
-                                                algo.doLayout(view);
+                                                // Assume this is a text file contains a namelist
+                                                Namelist namelist = (Namelist)this.gDialog.getWorkflowManager().ProcessTextFile(url);
+                                                this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), namelist, false);
                                                 imported = true;
                                             }
-                                        } */
-                                    }
-                                    catch (Exception eimp) {
-                                        logger.warning("Failed to import network: " + eimp.getMessage());
-                                    }
 
-                                    if (imported) continue;
+                                            /*ImportHandler importHandler = Cytoscape.getImportHandler();
+                                            if (importHandler != null)
+                                            {
+                                                logger.info("Get graph reader from file string " + url);
+                                                GraphReader greader = importHandler.getReader(url);
+                                                if (greader == null)
+                                                {
+                                                    logger.info("Try to get graph reader from url");
+                                                    URL furl = new URL(dataurl);
+                                                    greader = importHandler.getReader(furl);
+                                                }
 
-                                    try {
-                                        logger.info("Open network from " + url);
-                                        CyNetwork network = Cytoscape.createNetworkFromFile(url, true);
-                                        //String title = (network.getTitle() + "_" + instanceCount);
-                                        //network.setTitle(title);
-                                        NetworkId = network.getIdentifier(); // + "_" + instanceCount);
-                                        //instanceCount++;
-                                        //network.setIdentifier(NetworkId);
-                                        //logger.info("Network title: " + title);
-                                        //logger.info("NetworkId: " + NetworkId);
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        logger.error(e.getMessage());
-                                        e.printStackTrace();
+                                                if (greader != null)
+                                                {
+                                                    logger.info("Graph reader importing...");
+                                                    greader.read();
+                                                    logger.info("Graph reader get layout algorithm...");
+                                                    CyLayoutAlgorithm algo = greader.getLayoutAlgorithm();
 
-                                        try
-                                        {
-                                            logger.info("Try to create view from url" + dataurl);
-                                            URL fileurl = new URL(dataurl);
-                                            CyNetwork network = Cytoscape.createNetworkFromURL(fileurl, true);
-                                            NetworkId = network.getIdentifier();
-                                            logger.info("NetworkId: " + NetworkId);
+                                                    CyNetwork network = Cytoscape.createNetwork(greader, true, null);
+                                                    CyNetworkView view = Cytoscape.getNetworkView(network.getIdentifier());
+                                                    algo.doLayout(view);
+                                                    imported = true;
+                                                }
+                                            } */
                                         }
-                                        catch (Exception e1)
+                                        catch (Exception eimp) {
+                                            logger.warning("Failed to import network: " + eimp.getMessage());
+                                        }
+
+                                        if (imported) continue;
+
+                                        try {
+                                            logger.info("Open network from " + url);
+                                            CyNetwork network = Cytoscape.createNetworkFromFile(url, true);
+                                            //String title = (network.getTitle() + "_" + instanceCount);
+                                            //network.setTitle(title);
+                                            NetworkId = network.getIdentifier(); // + "_" + instanceCount);
+                                            //instanceCount++;
+                                            //network.setIdentifier(NetworkId);
+                                            //logger.info("Network title: " + title);
+                                            //logger.info("NetworkId: " + NetworkId);
+                                        }
+                                        catch (Exception e)
                                         {
-                                            logger.error(e.getMessage());
+                                            logger.warning(e.getMessage());
                                             e.printStackTrace();
 
                                             try
                                             {
-                                                URL sessionFileUrl = new URL(dataurl);
-                                                CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(sessionFileUrl);
-                                                sessionReader.read();
+                                                logger.info("Try to create view from url" + dataurl);
+                                                URL fileurl = new URL(dataurl);
+                                                CyNetwork network = Cytoscape.createNetworkFromURL(fileurl, true);
+                                                NetworkId = network.getIdentifier();
+                                                logger.info("NetworkId: " + NetworkId);
                                             }
-                                            catch (javax.xml.bind.JAXBException xmlex)
+                                            catch (Exception e1)
                                             {
-                                                logger.error("Encountered JAXBException " + xmlex.getErrorCode());
-                                            }
-                                            catch (Exception e2)
-                                            {
-                                                logger.error("Failed to open session file..." + e2.getMessage());
+                                                logger.warning(e.getMessage());
+                                                e.printStackTrace();
+
+                                                try
+                                                {
+                                                    logger.info("Try to load session file...");
+                                                    URL sessionFileUrl = new URL(dataurl);
+                                                    CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(sessionFileUrl);
+                                                    sessionReader.read();
+                                                }
+                                                catch (javax.xml.bind.JAXBException xmlex)
+                                                {
+                                                    logger.error("Encountered JAXBException " + xmlex.getErrorCode());
+                                                }
+                                                catch (Exception e2)
+                                                {
+                                                    logger.error("Failed to open session file..." + e2.getMessage());
+                                                }
                                             }
                                         }
                                     }
                                 }
+
+
                             }
+                        }
+                    }
 
-
+                    logger.info("Handling Gaggle data types for" + Cytoscape.getCurrentNetwork().getIdentifier());
+                    String srcCmd = workflowAction.getSource().getCommandUri();
+                    if (srcCmd != null)
+                    {
+                        srcCmd = srcCmd.toLowerCase().trim();
+                        if (srcCmd.endsWith(".jnlp"))
+                        {
+                            try
+                            {
+                                // if started from jnlp, wait for the network to be loaded
+                                // before processing workflowaction data
+                                Thread.sleep(10000);
+                            }
+                            catch (Exception ee)
+                            {
+                                logger.warn("Failed to sleep: " + ee.getMessage());
+                            }
+                        }
+                    }
+                    for (int j = 0; j < datalist.size(); j++)
+                    {
+                        Object data = datalist.get(j);
+                        if (data instanceof DataMatrix)
+                        {
+                            CyNetwork Net = Cytoscape.getNetwork(this.getNetworkId());
+                            this.processMatrix(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), (DataMatrix)data);
+                            NetworkId = Net.getIdentifier();
+                        }
+                        else if (data instanceof Cluster)
+                        {
+                            NetworkId = this.processCluster(Cytoscape.getCurrentNetwork().getIdentifier(),
+                                    workflowAction.getSource().getName(), (Cluster)data, false);
+                        }
+                        else if (data instanceof GaggleTuple)
+                        {
+                            CyNetwork Net = Cytoscape.getNetwork(this.getNetworkId());
+                            this.processTuple(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), (GaggleTuple)data);
+                            NetworkId = Net.getIdentifier();
+                        }
+                        else if (data instanceof Namelist)
+                        {
+                            // When processing workflow, we always broadcast to the base Cygoose. Therefore we need
+                            // to pass the Id of the current active network, so the broadcast data will be merged with
+                            // the current network
+                            NetworkId = this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), (Namelist)data, false);
+                        }
+                        else if (data instanceof Network)
+                        {
+                            NetworkId = this.processNetwork(Cytoscape.getCurrentNetwork().getIdentifier(),
+                                    workflowAction.getSource().getName(), (Network)data, true);
+                        }
+                        else if (data instanceof Table)
+                        {
+                            this.handleTable(workflowAction.getSource().getName(), (Table)data);
                         }
                     }
                 }
-
-                logger.info("Handling Gaggle data types for" + Cytoscape.getCurrentNetwork().getIdentifier());
-                String srcCmd = workflowAction.getSource().getCommandUri();
-                if (srcCmd != null)
+                else
                 {
-                    srcCmd = srcCmd.toLowerCase().trim();
-                    if (srcCmd.endsWith(".jnlp"))
+                    logger.info("Empty data received");
+                    CyNetwork Network = Cytoscape.getCurrentNetwork();
+                    if (Network != null)
+                    {
+                        NetworkId = Network.getIdentifier();
+                        logger.info("Network ID: " + NetworkId);
+                    }
+                }
+
+                logger.info("Checking NetworkId...");
+                if (NetworkId != null)
+                {
+                    logger.info("Add WorkflowAction " + requestID + " of Network " + NetworkId + " to Hashmap");
+                    gDialog.addRequestNetwork(NetworkId, requestID, true);
+
+                    if (gaggleBoss instanceof Boss3)
                     {
                         try
                         {
-                            // if started from jnlp, wait for the network to be loaded
-                            // before processing workflowaction data
-                            Thread.sleep(10000);
+                            logger.info("Exporting current view to file...");
+                            Boss3 boss = (Boss3)gaggleBoss;
+
+                            BitmapExporter exporter = new BitmapExporter("jpg", 0.5);
+                            File exportFile = File.createTempFile(requestID, ".jpg");
+                            String exportfilename = exportFile.getAbsolutePath();
+                            logger.info("Export file path: " + exportfilename);
+                            FileOutputStream output =  new FileOutputStream(exportFile);
+                            CyNetworkView view = Cytoscape.getNetworkView(NetworkId);
+                            if (view != null)
+                                exporter.export(view, output);
+
+                            logger.info("Creating report WorkflowAction for workflow " + workflowAction.getWorkflowID() + " Component " + workflowAction.getComponentID());
+                            ArrayList<Single> paramList = new ArrayList<Single>();
+                            Single data = new Single("workflowid", workflowAction.getWorkflowID());
+                            paramList.add(data);
+                            data = new Single("componentid", workflowAction.getComponentID());
+                            paramList.add(data);
+                            data = new Single("component-name", new String("Cytoscape"));
+                            paramList.add(data);
+                            data = new Single("type", new String("file"));
+                            paramList.add(data);
+                            data = new Single("file", exportfilename);
+                            paramList.add(data);
+                            Tuple tuple = new Tuple("Cytoscape Report Data", paramList);
+                            WorkflowData wfdata = new WorkflowData(tuple);
+                            GaggleData[] gdata = new GaggleData[1];
+                            gdata[0] = wfdata;
+                            WorkflowAction reportaction = new WorkflowAction(workflowAction.getWorkflowID(),
+                                                                workflowAction.getSessionID(),
+                                                                workflowAction.getComponentID(),
+                                                                WorkflowAction.ActionType.Request,
+                                                                workflowAction.getSource(),
+                                                                null,
+                                                                WorkflowAction.Options.WorkflowReportData.getValue(),
+                                                                gdata
+                                    );
+
+                            logger.info("Sending report workflowaction to boss...");
+                            boss.handleWorkflowAction(reportaction);
                         }
-                        catch (Exception ee)
+                        catch (Exception ex)
                         {
-                            logger.warn("Failed to sleep: " + ee.getMessage());
+                            logger.error("Failed to processing report data " + ex.getMessage());
                         }
                     }
                 }
-                for (int j = 0; j < datalist.size(); j++)
-                {
-                    Object data = datalist.get(j);
-                    if (data instanceof DataMatrix)
-                    {
-                        CyNetwork Net = Cytoscape.getNetwork(this.getNetworkId());
-                        this.processMatrix(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), (DataMatrix)data);
-                        NetworkId = Net.getIdentifier();
-                    }
-                    else if (data instanceof Cluster)
-                    {
-                        NetworkId = this.processCluster(Cytoscape.getCurrentNetwork().getIdentifier(),
-                                workflowAction.getSource().getName(), (Cluster)data, false);
-                    }
-                    else if (data instanceof GaggleTuple)
-                    {
-                        CyNetwork Net = Cytoscape.getNetwork(this.getNetworkId());
-                        this.processTuple(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), (GaggleTuple)data);
-                        NetworkId = Net.getIdentifier();
-                    }
-                    else if (data instanceof Namelist)
-                    {
-                        // When processing workflow, we always broadcast to the base Cygoose. Therefore we need
-                        // to pass the Id of the current active network, so the broadcast data will be merged with
-                        // the current network
-                        NetworkId = this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), (Namelist)data, false);
-                    }
-                    else if (data instanceof Network)
-                    {
-                        NetworkId = this.processNetwork(Cytoscape.getCurrentNetwork().getIdentifier(),
-                                workflowAction.getSource().getName(), (Network)data, true);
-                    }
-                    else if (data instanceof Table)
-                    {
-                        this.handleTable(workflowAction.getSource().getName(), (Table)data);
-                    }
-                }
-            }
-            else
-            {
-                logger.info("Empty data received");
-                CyNetwork Network = Cytoscape.getCurrentNetwork();
-                if (Network != null)
-                {
-                    NetworkId = Network.getIdentifier();
-                    logger.info("Network ID: " + NetworkId);
-                }
-            }
 
-            logger.info("Checking NetworkId...");
-            if (NetworkId != null)
-            {
-                logger.info("Add WorkflowAction " + requestID + " of Network " + NetworkId + " to Hashmap");
-                gDialog.addRequestNetwork(NetworkId, requestID, true);
-
-                if (gaggleBoss instanceof Boss3)
+                // Generate a temporary file to record actions
+                if (!isRecording)
                 {
                     try
                     {
-                        logger.info("Exporting current view to file...");
-                        Boss3 boss = (Boss3)gaggleBoss;
-
-                        BitmapExporter exporter = new BitmapExporter("jpg", 0.5);
-                        File exportFile = File.createTempFile(requestID, ".jpg");
-                        String exportfilename = exportFile.getAbsolutePath();
-                        logger.info("Export file path: " + exportfilename);
-                        FileOutputStream output =  new FileOutputStream(exportFile);
-                        CyNetworkView view = Cytoscape.getNetworkView(NetworkId);
-                        if (view != null)
-                            exporter.export(view, output);
-
-                        logger.info("Creating report WorkflowAction for workflow " + workflowAction.getWorkflowID() + " Component " + workflowAction.getComponentID());
-                        ArrayList<Single> paramList = new ArrayList<Single>();
-                        Single data = new Single("workflowid", workflowAction.getWorkflowID());
-                        paramList.add(data);
-                        data = new Single("componentid", workflowAction.getComponentID());
-                        paramList.add(data);
-                        data = new Single("component-name", new String("Cytoscape"));
-                        paramList.add(data);
-                        data = new Single("type", new String("file"));
-                        paramList.add(data);
-                        data = new Single("file", exportfilename);
-                        paramList.add(data);
-                        Tuple tuple = new Tuple("Cytoscape Report Data", paramList);
-                        WorkflowData wfdata = new WorkflowData(tuple);
-                        GaggleData[] gdata = new GaggleData[1];
-                        gdata[0] = wfdata;
-                        WorkflowAction reportaction = new WorkflowAction(workflowAction.getWorkflowID(),
-                                                            workflowAction.getSessionID(),
-                                                            workflowAction.getComponentID(),
-                                                            WorkflowAction.ActionType.Request,
-                                                            workflowAction.getSource(),
-                                                            null,
-                                                            WorkflowAction.Options.WorkflowReportData.getValue(),
-                                                            gdata
-                                );
-
-                        logger.info("Sending report workflowaction to boss...");
-                        boss.handleWorkflowAction(reportaction);
+                        isRecording = true;
+                        String tempDir = System.getProperty("java.io.tmpdir") + File.separator + "Gaggle";
+                        File temp = new File(tempDir);
+                        if (!temp.exists())
+                        {
+                            logger.info("Create temp dir: " + tempDir);
+                            try
+                            {
+                                temp.mkdirs();
+                            }
+                            catch (Exception fe)
+                            {
+                                logger.warning("Failed to create temp directory " + fe.getMessage());
+                            }
+                        }
+                        actionRecordingFile = tempDir + File.separator + UUID.randomUUID().toString() + ".grec";
+                        actionRecordingFileWriter = new PrintWriter(actionRecordingFile);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex1)
                     {
-                        logger.error("Failed to processing report data " + ex.getMessage());
+                        logger.warning("Failed to open recording file " + actionRecordingFile);
                     }
+
                 }
             }
+            catch (Exception eee)
+            {
+                logger.error("Failed to handle workflowaction " + eee.getMessage());
+            }
         }
+
+
     }
+
+
+
 
     public void saveState(String directory, String filePrefix)
     {

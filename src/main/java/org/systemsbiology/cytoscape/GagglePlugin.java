@@ -26,6 +26,8 @@ import org.systemsbiology.gaggle.util.MiscUtil;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.rmi.RemoteException;
@@ -36,6 +38,8 @@ import java.util.Set;
 
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 
 /**
  * Cytoscape-Gaggle Plugin.
@@ -74,6 +78,9 @@ implements PropertyChangeListener, GaggleConnectionListener,
 
         Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(this);
 
+        // Register listeners to menu items to record actions for workflows
+        registerMenuListeners();
+
         ORIGINAL_GOOSE_NAME = "Cytoscape" + " v." + new CytoscapeVersion().getFullVersion();
         myGaggleName = ORIGINAL_GOOSE_NAME;
 
@@ -108,6 +115,36 @@ implements PropertyChangeListener, GaggleConnectionListener,
         String targetGooseName = (String) this.gDialog.getGooseChooser().getSelectedItem();
         logger.info("Target index: " + targetGooseIndex + "  Target item: " + targetGooseName);
         return targetGooseName;
+    }
+
+    private void registerMenuListeners()
+    {
+        JMenu nodesSubmenu = (JMenu)Cytoscape.getDesktop().getCyMenus().getSelectMenu().getItem(1);
+        for (int i = 0; i < nodesSubmenu.getItemCount(); i++)
+        {
+            final int menuindex = i;
+            JMenuItem item = nodesSubmenu.getItem(i);
+            item.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    //To change body of implemented methods use File | Settings | File Templates.
+                    logger.info("Select Nodes submenu item performed " + e.getActionCommand() + " " + new Integer(menuindex).toString());
+                }
+            });
+        }
+
+
+        JMenu edgesSubmenu = (JMenu)Cytoscape.getDesktop().getCyMenus().getSelectMenu().getItem(2);
+        for (int i = 0; i < edgesSubmenu.getItemCount(); i++)
+        {
+            final int menuindex = i;
+            JMenuItem item = nodesSubmenu.getItem(i);
+            item.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    //To change body of implemented methods use File | Settings | File Templates.
+                    logger.info("Select Nodes submenu item performed " + e.getActionCommand() + " " + new Integer(menuindex).toString());
+                }
+            });
+        }
     }
 
 
