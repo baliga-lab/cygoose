@@ -106,6 +106,9 @@ implements PropertyChangeListener, GaggleConnectionListener,
 
         broadcast = new CyBroadcast(gDialog, gaggleBoss);
         pluginInitialized = true;
+
+        // Update the context class loader, this is necessary to fix the bug introduced by Java 7u25
+        //this.gDialog.setContextClassLoader();
     }
 
     public GooseWorkflowManager getWorkflowManager() { return workflowManager; }
@@ -119,6 +122,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
 
     private void registerMenuListeners()
     {
+        // Select Node menu
         JMenu nodesSubmenu = (JMenu)Cytoscape.getDesktop().getCyMenus().getSelectMenu().getItem(1);
         for (int i = 0; i < nodesSubmenu.getItemCount(); i++)
         {
@@ -127,12 +131,17 @@ implements PropertyChangeListener, GaggleConnectionListener,
             item.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     //To change body of implemented methods use File | Settings | File Templates.
-                    logger.info("Select Nodes submenu item performed " + e.getActionCommand() + " " + new Integer(menuindex).toString());
+                    if (gDialog.getWorkflowStarted())
+                    {
+                        logger.info("Select Nodes submenu item performed " + e.getActionCommand() + " " + new Integer(menuindex).toString());
+
+                    }
                 }
             });
         }
 
 
+        // Select Edge menu
         JMenu edgesSubmenu = (JMenu)Cytoscape.getDesktop().getCyMenus().getSelectMenu().getItem(2);
         for (int i = 0; i < edgesSubmenu.getItemCount(); i++)
         {
@@ -141,7 +150,10 @@ implements PropertyChangeListener, GaggleConnectionListener,
             item.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     //To change body of implemented methods use File | Settings | File Templates.
-                    logger.info("Select Nodes submenu item performed " + e.getActionCommand() + " " + new Integer(menuindex).toString());
+                    if (gDialog.getWorkflowStarted())
+                    {
+                        logger.info("Select Nodes submenu item performed " + e.getActionCommand() + " " + new Integer(menuindex).toString());
+                    }
                 }
             });
         }
@@ -355,7 +367,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
         if (gaggleBoss instanceof org.systemsbiology.gaggle.core.Boss3)
         {
             // Get process id and send it to boss
-            try
+            /*try
             {
                 //String workDir = System.getProperty("user.dir");
                 //workDir += ("/" + ORIGINAL_GOOSE_NAME + ".exe");
@@ -377,7 +389,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
             catch (Exception e)
             {
                 logger.error("Failed to record app name " + e.getMessage());
-            }
+            }  */
         }
         return Goose;
     }

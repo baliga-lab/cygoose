@@ -5,8 +5,10 @@ import com.sosnoski.util.array.StringArray;
 import cytoscape.CyNetwork;
 import cytoscape.Cytoscape;
 import org.apache.commons.collections.map.HashedMap;
+import org.systemsbiology.cytoscape.CyGoose;
 import org.systemsbiology.gaggle.core.GooseWorkflowManager;
 import org.systemsbiology.gaggle.core.datatypes.*;
+import sun.awt.AppContext;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
@@ -23,6 +25,8 @@ public class GooseDialog extends javax.swing.JPanel {
     String[] nextWorkflowTexts = null;
     int[] nextWorkflowDataTypes = null;
     DefaultListModel listModel = new DefaultListModel();
+    boolean workflowStarted = false;
+    AppContext appContext = null;
 
     public enum GooseButton {
         CONNECT("Connect"), SHOW("Show"), HIDE("Hide"), TUPLE(
@@ -41,7 +45,34 @@ public class GooseDialog extends javax.swing.JPanel {
      */
     public GooseDialog() {
         initComponents();
+        appContext = AppContext.getAppContext();
+        System.out.println("Main appContext " + appContext);
     }
+
+    public void invokeLater2(Runnable rn) {
+        if (AppContext.getAppContext() == null) {
+            System.out.println("...Invoke on appContext...");
+            sun.awt.SunToolkit.invokeLaterOnAppContext(appContext, rn);
+        } else {
+            SwingUtilities.invokeLater(rn);
+        }
+    }
+
+    public void setContextClassLoader()
+    {
+        try
+        {
+            final ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            System.out.println("Current thread class loader " + cl + " Setting context class loader " + CyGoose.class.getClassLoader());
+            Thread.currentThread().setContextClassLoader(CyGoose.class.getClassLoader());
+        }
+        catch (Exception e) {
+            System.out.println("Failed to set context class loader " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public boolean getWorkflowStarted() { return this.workflowStarted; }
 
     public GooseWorkflowManager getWorkflowManager() { return this.workflowManager; }
 
