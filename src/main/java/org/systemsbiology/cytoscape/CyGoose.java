@@ -48,6 +48,7 @@ import cytoscape.layout.CyLayoutAlgorithm;
 
 import giny.model.Node;
 import giny.model.Edge;
+import sun.awt.AppContext;
 
 
 /* TODO all cases need to handle the "null network" case by either doing the
@@ -230,8 +231,14 @@ public class CyGoose implements Goose3 {
     // is this even used anymore?
     public void update(String[] activeGooseNames) throws RemoteException {
         this.activeGooseNames = activeGooseNames;
-        fireGooseListChangedEvent();
-		}
+        Runnable updateTask = new Runnable() {
+            public void run() {
+                fireGooseListChangedEvent();
+            }
+        };
+        gDialog.invokeLater2(updateTask);
+
+	}
 
     private synchronized void fireGooseListChangedEvent() {
         for (GooseListChangedListener listener : gooseListChangedListeners) {
@@ -916,7 +923,7 @@ public class CyGoose implements Goose3 {
     }
 
 
-    public void saveState(String directory, String filePrefix)
+    private void processSaveState(String directory, String filePrefix)
     {
         if (directory != null && directory.length() > 0 && filePrefix != null && filePrefix.length() > 0)
         {
@@ -934,7 +941,26 @@ public class CyGoose implements Goose3 {
         }
     }
 
-    public void loadState(String restorefilename)
+    public void saveState(final String directory, final String filePrefix)
+    {
+        if (AppContext.getAppContext() == null)
+        {
+            logger.info("Save state passing appContext " + directory + " " + filePrefix);
+            Runnable saveStateTask = new Runnable() {
+                public void run() {
+                    processSaveState(directory, filePrefix);
+                }
+            };
+            gDialog.invokeLater2(saveStateTask);
+        }
+        else
+        {
+            logger.info("Save state with appContext " + directory + " " + filePrefix);
+            processSaveState(directory, filePrefix);
+        }
+    }
+
+    private void processLoadState(String restorefilename)
     {
         try
         {
@@ -944,6 +970,25 @@ public class CyGoose implements Goose3 {
         catch (Exception e)
         {
             logger.error("Failed to load session file " + e.getMessage());
+        }
+    }
+
+    public void loadState(final String restorefilename)
+    {
+        if (AppContext.getAppContext() == null)
+        {
+            logger.info("Load state passing appContext " + restorefilename);
+            Runnable workflowTask = new Runnable() {
+                public void run() {
+                    processLoadState(restorefilename);
+                }
+            };
+            gDialog.invokeLater2(workflowTask);
+        }
+        else
+        {
+            logger.info("Load state with appContext " + restorefilename);
+            processLoadState(restorefilename);
         }
     }
 
