@@ -649,7 +649,7 @@ public class CyGoose implements Goose3 {
                                         {
                                             // Assume this is a text file contains a namelist
                                             Namelist namelist = (Namelist)this.gDialog.getWorkflowManager().ProcessTextFile(url);
-                                            this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), namelist, false);
+                                            NetworkId = this.processNameList(Cytoscape.getCurrentNetwork().getIdentifier(), workflowAction.getSource().getName(), namelist, false);
                                             imported = true;
                                         }
 
@@ -807,7 +807,7 @@ public class CyGoose implements Goose3 {
                 }
             }
 
-            logger.info("Checking NetworkId...");
+            logger.info("Checking NetworkId..." + NetworkId);
             if (NetworkId != null)
             {
                 logger.info("Add WorkflowAction " + requestID + " of Network " + NetworkId + " to Hashmap");
