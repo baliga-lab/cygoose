@@ -70,19 +70,25 @@ public class CyBroadcast {
     }
 
     // very basic, for the moment we will only broadcast by ID
-    public void broadcastNameList(CyGoose goose, String targetGoose) {
+    public void broadcastNameList(final CyGoose goose, final String targetGoose) {
         logger.info("broadcastNameList");
 
-        Namelist namelist = generateNamelist(goose);
-        try {
-            gaggleBoss.broadcastNamelist((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, namelist);
-            // TODO: need to handle the case when a goose broadcast to other goose INSIDE cytoscape
-            recordDataUrl(targetGoose);
-        } catch (Exception ex) {
-            String msg = "Failed to broadcast list of names to " + targetGoose;
-            showError(msg);
-            logger.error(msg, ex);
-        }
+        Runnable broadcastTask = new Runnable() {
+            public void run() {
+                Namelist namelist = generateNamelist(goose);
+                try {
+                    gaggleBoss.broadcastNamelist((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, namelist);
+                    // TODO: need to handle the case when a goose broadcast to other goose INSIDE cytoscape
+                    recordDataUrl(targetGoose);
+                } catch (Exception ex) {
+                    String msg = "Failed to broadcast list of names to " + targetGoose;
+                    showError(msg);
+                    logger.error(msg, ex);
+                }
+            }
+        };
+        gDialog.invokeLater2(broadcastTask);
+
     }
 
     private Namelist generateNamelist(CyGoose goose)
@@ -107,21 +113,27 @@ public class CyBroadcast {
     public void broadcastTuple(final CyGoose goose, final String targetGoose) {
         logger.info("broadcastTuple");
 
-        if (getSelectedNodes(goose).size() == 0) {
-            showWarning("No nodes selected for broadcast.");
-            return;
-        }
+        Runnable broadcastTask = new Runnable() {
+            public void run() {
 
-        // pass string of attribute names
-        String[] allAttrNames = Cytoscape.getNodeAttributes().getAttributeNames();
-
-        AttrSelectAction okAction = new AttrSelectAction() {
-                public void takeAction(String[] selectAttr) {
-                    broadcastTuple(selectAttr, goose, targetGoose);
+                if (getSelectedNodes(goose).size() == 0) {
+                    showWarning("No nodes selected for broadcast.");
+                    return;
                 }
-            };
 
-        delegateProcessTuple(goose, targetGoose, okAction);
+                // pass string of attribute names
+                String[] allAttrNames = Cytoscape.getNodeAttributes().getAttributeNames();
+
+                AttrSelectAction okAction = new AttrSelectAction() {
+                        public void takeAction(String[] selectAttr) {
+                            broadcastTuple(selectAttr, goose, targetGoose);
+                        }
+                    };
+
+                delegateProcessTuple(goose, targetGoose, okAction);
+            }
+        };
+        gDialog.invokeLater2(broadcastTask);
     }
 
     private void broadcastTuple(String[] attrNames, CyGoose goose,
@@ -248,12 +260,17 @@ public class CyBroadcast {
     public void broadcastDataMatrix(final CyGoose goose, final String targetGoose) {
         logger.info("broadcastDataMatrix()");
 
-        AttrSelectAction okAction = new AttrSelectAction() {
-            public void takeAction(String[] selectAttr) {
-                broadcastDataMatrix(selectAttr, goose, targetGoose);
+        Runnable broadcastTask = new Runnable() {
+            public void run() {
+                AttrSelectAction okAction = new AttrSelectAction() {
+                    public void takeAction(String[] selectAttr) {
+                        broadcastDataMatrix(selectAttr, goose, targetGoose);
+                    }
+                };
+                delegateProcessMatrix(goose, targetGoose, okAction, null); //false, null, null, null);
             }
         };
-        delegateProcessMatrix(goose, targetGoose, okAction, null); //false, null, null, null);
+        gDialog.invokeLater2(broadcastTask);
     }
 
     private DataMatrix generateMatrix(String[] condNames, CyGoose goose)
@@ -395,17 +412,22 @@ public class CyBroadcast {
         }
     }
 
-    public void broadcastNetwork(CyGoose goose, String targetGoose) {
+    public void broadcastNetwork(final CyGoose goose, final String targetGoose) {
         logger.info("broadcastNetwork " + getNetworkIdentifier(goose));
 
-        Network gaggleNetwork = GenerateNetwork(goose);
-        logger.debug("in broadcastnetwork, species is " + gaggleNetwork.getSpecies());
-        try {
-            this.gaggleBoss.broadcastNetwork((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, gaggleNetwork);
-            recordDataUrl(targetGoose);
-        } catch (Exception ex) {
-            logger.error(ex.getMessage(), ex);
-        }
+        Runnable broadcastTask = new Runnable() {
+            public void run() {
+                Network gaggleNetwork = GenerateNetwork(goose);
+                logger.debug("in broadcastnetwork, species is " + gaggleNetwork.getSpecies());
+                try {
+                    gaggleBoss.broadcastNetwork((GagglePlugin.ORIGINAL_GOOSE_NAME + ";" + goose.getName()), targetGoose, gaggleNetwork);
+                    recordDataUrl(targetGoose);
+                } catch (Exception ex) {
+                    logger.error(ex.getMessage(), ex);
+                }
+            }
+        };
+        gDialog.invokeLater2(broadcastTask);
     }
 
     class TupleProcessingThread extends Thread
@@ -549,7 +571,7 @@ public class CyBroadcast {
                 if (workflowManager.CompleteWorkflowAction(gaggleBoss, requestID))
                 {
                     // Now we can clean up the UI
-                    gDialog.setWorkflowUI(null);
+                    gDialog.setWorkflowUI(null, requestID);
                     gDialog.removeRequestNetwork(requestID);
                 }
             }

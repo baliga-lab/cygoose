@@ -193,11 +193,19 @@ public class GooseDialog extends javax.swing.JPanel {
         }
     }
     
-    public void setWorkflowUI(WorkflowAction action)
+    public void setWorkflowUI(WorkflowAction action, String requestID)
     {
         if (action != null)
         {
             WorkflowComponent[] targets = action.getTargets();
+            // Set species
+            // species is in the format of short name;long name
+            String species = this.getWorkflowManager().getSpecies(requestID);
+            String[] splitted = species.split(";");
+            if (splitted.length > 1)
+                species = splitted[1].trim().toLowerCase();
+            this.setSpeciesText(species);
+
             if (targets != null)
             {
                 this.listModel.clear();

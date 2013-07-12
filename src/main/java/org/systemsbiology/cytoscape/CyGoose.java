@@ -603,8 +603,9 @@ public class CyGoose implements Goose3 {
             // Set the next workflow component text
             if (workflowAction.getTargets() != null && workflowAction.getTargets().length > 0)
                 logger.info("Data type for " + workflowAction.getTargets()[0].getGooseName() + ": " + workflowAction.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
-            this.gDialog.setWorkflowUI(workflowAction);
+
             String requestID = this.gDialog.getWorkflowManager().addSession(workflowAction);
+            this.gDialog.setWorkflowUI(workflowAction, requestID);
             logger.info("WorkflowAction RequestId: " + requestID);
             String NetworkId = null;
 

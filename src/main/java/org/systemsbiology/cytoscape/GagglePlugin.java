@@ -304,7 +304,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
             WorkflowAction action = workflowManager.getWorkflowAction(requestID);
             if (action.getTargets() != null && action.getTargets().length > 0)
                 logger.info("Data type for target 0: " + action.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
-            gDialog.setWorkflowUI(action);
+            gDialog.setWorkflowUI(action, requestID);
         }
     }
 
