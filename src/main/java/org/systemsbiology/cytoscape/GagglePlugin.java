@@ -219,93 +219,99 @@ implements PropertyChangeListener, GaggleConnectionListener,
 
     // Network created: create goose  Network destroyed: remove goose Network
     // title changed: change the goose name
-    public void propertyChange(PropertyChangeEvent Event) {
+    public void propertyChange(final PropertyChangeEvent Event) {
         // nothing has been registered, don't try to handle events
         if (!registered) return;
 
-        if (Event.getPropertyName() == Cytoscape.NETWORK_TITLE_MODIFIED) {
-            // change the goose name
-            logger.info("===== EVENT " + Event.getPropertyName() + "======");
-            try { // this allows the goose to work in 2.5 as well
-                Class titleChange = Class.forName("cytoscape.CyNetworkTitleChange");
-                cytoscape.CyNetworkTitleChange OldTitle =
-                    (cytoscape.CyNetworkTitleChange) Event.getOldValue();
-                cytoscape.CyNetworkTitleChange NewTitle =
-                    (cytoscape.CyNetworkTitleChange) Event.getNewValue();
+        Runnable propertyChangeTask = new Runnable() {
+            public void run() {
 
-                // this should always be true but if somehow it ain't....
-                if (!OldTitle.getNetworkIdentifier().equals(NewTitle.getNetworkIdentifier())) {
-                    logger.warn("ERROR: " + Cytoscape.NETWORK_TITLE_MODIFIED +
-                                " event does not refer to the same networks!");
-                    return;
-                } else {
-                    logger.info("Obtaining Goose for " + NewTitle.getNetworkIdentifier());
-                    CyGoose goose = this.networkGeese.get(NewTitle.getNetworkIdentifier());
-                    if (goose != null &&
-                        !goose.getName().equals(NewTitle.getNetworkTitle())) {
-                        try {
-                            String NewGooseName =
-                                this.gaggleBoss.renameGoose(goose.getName(),
-                                                            NewTitle.getNetworkTitle());
-                            Cytoscape.getNetwork(goose.getNetworkId()).setTitle(NewGooseName);
-                            logger.info("Goose renamed to " + goose.getName() + " " + goose.getNetworkId());
-                        } catch (RemoteException re) {
-                            re.printStackTrace();
+                if (Event.getPropertyName() == Cytoscape.NETWORK_TITLE_MODIFIED) {
+                    // change the goose name
+                    logger.info("===== EVENT " + Event.getPropertyName() + "======");
+                    try { // this allows the goose to work in 2.5 as well
+                        Class titleChange = Class.forName("cytoscape.CyNetworkTitleChange");
+                        cytoscape.CyNetworkTitleChange OldTitle =
+                            (cytoscape.CyNetworkTitleChange) Event.getOldValue();
+                        cytoscape.CyNetworkTitleChange NewTitle =
+                            (cytoscape.CyNetworkTitleChange) Event.getNewValue();
+
+                        // this should always be true but if somehow it ain't....
+                        if (!OldTitle.getNetworkIdentifier().equals(NewTitle.getNetworkIdentifier())) {
+                            logger.warn("ERROR: " + Cytoscape.NETWORK_TITLE_MODIFIED +
+                                        " event does not refer to the same networks!");
+                            return;
+                        } else {
+                            logger.info("Obtaining Goose for " + NewTitle.getNetworkIdentifier());
+                            CyGoose goose = networkGeese.get(NewTitle.getNetworkIdentifier());
+                            if (goose != null &&
+                                !goose.getName().equals(NewTitle.getNetworkTitle())) {
+                                try {
+                                    String NewGooseName =
+                                        gaggleBoss.renameGoose(goose.getName(),
+                                                                    NewTitle.getNetworkTitle());
+                                    Cytoscape.getNetwork(goose.getNetworkId()).setTitle(NewGooseName);
+                                    logger.info("Goose renamed to " + goose.getName() + " " + goose.getNetworkId());
+                                } catch (RemoteException re) {
+                                    re.printStackTrace();
+                                }
+                            }
                         }
+                    } catch (java.lang.ClassNotFoundException ex) {
+                        logger.error("Caught a ClassNotFoundException for " +
+                                     "cytoscape.CyNetworkTitleChange");
                     }
+                } else if (Event.getPropertyName() == Cytoscape.NETWORK_CREATED) {
+                    // register a goose
+                    logger.info("==== Event " + Event.getPropertyName() + "====");
+                    String netId = Event.getNewValue().toString();
+                    CyNetwork net = Cytoscape.getNetwork(netId);
+
+                    try {
+                        CyGoose NewGoose = createNewGoose(net);
+                        logger.info("Saved new goose " + NewGoose.getName() + " for " + net.getIdentifier());
+                        networkGeese.put(net.getIdentifier(), NewGoose);
+                        MiscUtil.updateGooseChooser(gDialog.getGooseChooser(),
+                                                "ADummyString",
+                                                NewGoose.getActiveGooseNames());
+                    } catch (RemoteException ex) {
+                        GagglePlugin.showDialogBox("Failed to create a new Goose for network " +
+                                                   net.getTitle(), "Error", JOptionPane.ERROR_MESSAGE);
+                        ex.printStackTrace();
+                    }
+                } else if (Event.getPropertyName() == Cytoscape.NETWORK_DESTROYED) {
+                    // remove a goose
+                    logger.info("==== Event " + Event.getPropertyName() + "====");
+                    String netId = Event.getNewValue().toString();
+                    CyNetwork net = Cytoscape.getNetwork(netId);
+
+                    String Name = "";
+                    try {
+                        CyGoose OldGoose = (CyGoose) networkGeese.get(net.getIdentifier());
+                        Name = OldGoose.getName();
+                        gaggleBoss.unregister(OldGoose.getName());
+                        UnicastRemoteObject.unexportObject(OldGoose, true);
+                        gDialog.getGooseChooser().removeItem(OldGoose.getName());
+                    } catch (RemoteException ex) {
+                        GagglePlugin.showDialogBox("Failed to remove goose '" + Name +
+                                                   "' from Boss", "Warning",
+                                                   JOptionPane.WARNING_MESSAGE);
+                        ex.printStackTrace();
+                    }
+                } else if (Event.getPropertyName() == CytoscapeDesktop.NETWORK_VIEW_FOCUSED) {
+                    logger.info("=== Event " + Event.getPropertyName() + "===");
+                    CyGoose current = networkGeese.get(Cytoscape.getCurrentNetwork().getIdentifier());
+                    gDialog.setSpeciesText(current.getSpeciesName());
+                    // Set the next workflow component text
+                    String requestID = gDialog.getRequestID(Cytoscape.getCurrentNetwork().getIdentifier());
+                    WorkflowAction action = workflowManager.getWorkflowAction(requestID);
+                    if (action.getTargets() != null && action.getTargets().length > 0)
+                        logger.info("Data type for target 0: " + action.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
+                    gDialog.setWorkflowUI(action, requestID);
                 }
-            } catch (java.lang.ClassNotFoundException ex) {
-                logger.error("Caught a ClassNotFoundException for " +
-                             "cytoscape.CyNetworkTitleChange");
             }
-        } else if (Event.getPropertyName() == Cytoscape.NETWORK_CREATED) {
-            // register a goose
-            logger.info("==== Event " + Event.getPropertyName() + "====");
-            String netId = Event.getNewValue().toString();
-            CyNetwork net = Cytoscape.getNetwork(netId);
-
-            try {
-                CyGoose NewGoose = createNewGoose(net);
-                logger.info("Saved new goose " + NewGoose.getName() + " for " + net.getIdentifier());
-                networkGeese.put(net.getIdentifier(), NewGoose);
-                MiscUtil.updateGooseChooser(gDialog.getGooseChooser(),
-                                        "ADummyString",
-                                        NewGoose.getActiveGooseNames());
-            } catch (RemoteException ex) {
-                GagglePlugin.showDialogBox("Failed to create a new Goose for network " +
-                                           net.getTitle(), "Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
-            }
-        } else if (Event.getPropertyName() == Cytoscape.NETWORK_DESTROYED) {
-            // remove a goose
-            logger.info("==== Event " + Event.getPropertyName() + "====");
-            String netId = Event.getNewValue().toString();
-            CyNetwork net = Cytoscape.getNetwork(netId);
-
-            String Name = "";
-            try {
-                CyGoose OldGoose = (CyGoose) networkGeese.get(net.getIdentifier());
-                Name = OldGoose.getName();
-                gaggleBoss.unregister(OldGoose.getName());
-                UnicastRemoteObject.unexportObject(OldGoose, true);
-                gDialog.getGooseChooser().removeItem(OldGoose.getName());
-            } catch (RemoteException ex) {
-                GagglePlugin.showDialogBox("Failed to remove goose '" + Name +
-                                           "' from Boss", "Warning",
-                                           JOptionPane.WARNING_MESSAGE);
-                ex.printStackTrace();
-            }
-        } else if (Event.getPropertyName() == CytoscapeDesktop.NETWORK_VIEW_FOCUSED) {
-            logger.info("=== Event " + Event.getPropertyName() + "===");
-            CyGoose current = networkGeese.get(Cytoscape.getCurrentNetwork().getIdentifier());
-            gDialog.setSpeciesText(current.getSpeciesName());
-            // Set the next workflow component text
-            String requestID = gDialog.getRequestID(Cytoscape.getCurrentNetwork().getIdentifier());
-            WorkflowAction action = workflowManager.getWorkflowAction(requestID);
-            if (action.getTargets() != null && action.getTargets().length > 0)
-                logger.info("Data type for target 0: " + action.getTargets()[0].getParams().get(WorkflowComponent.ParamNames.EdgeType.getValue()));
-            gDialog.setWorkflowUI(action, requestID);
-        }
+        };
+        gDialog.invokeLater2(propertyChangeTask);
     }
 
     public void onCytoscapeExit() {
