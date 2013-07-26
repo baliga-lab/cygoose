@@ -170,6 +170,9 @@ public class GooseDialog extends javax.swing.JPanel {
     }
     
     public void setSpeciesText(String text) {
+        System.out.println("Setting species text " + text);
+        if (text == null || text.length() == 0)
+            return;
     	this.speciesText.setText(text);
     }
     
@@ -204,7 +207,9 @@ public class GooseDialog extends javax.swing.JPanel {
             String[] splitted = species.split(";");
             if (splitted.length > 1)
                 species = splitted[1].trim().toLowerCase();
-            this.setSpeciesText(species);
+            System.out.println("Workflow species " + species);
+            if (species != null && species.length() > 0)
+                this.setSpeciesText(species);
 
             if (targets != null)
             {

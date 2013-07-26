@@ -103,6 +103,7 @@ public class CyBroadcast {
         }
 
         Namelist namelist = new Namelist();
+        System.out.println("Species of the namelist " + gDialog.getSpecies());
         namelist.setSpecies(gDialog.getSpecies());
         namelist.setNames(selectedIds.toArray(new String[0]));
         return namelist;

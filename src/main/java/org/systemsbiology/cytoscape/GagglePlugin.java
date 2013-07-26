@@ -373,7 +373,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
         if (gaggleBoss instanceof org.systemsbiology.gaggle.core.Boss3)
         {
             // Get process id and send it to boss
-            /*try
+            try
             {
                 //String workDir = System.getProperty("user.dir");
                 //workDir += ("/" + ORIGINAL_GOOSE_NAME + ".exe");
@@ -395,7 +395,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
             catch (Exception e)
             {
                 logger.error("Failed to record app name " + e.getMessage());
-            }  */
+            }
         }
         return Goose;
     }

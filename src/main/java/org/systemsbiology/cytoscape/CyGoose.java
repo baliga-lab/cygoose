@@ -180,8 +180,11 @@ public class CyGoose implements Goose3 {
     }
 
     public void setSpeciesName(String name) {
-        this.species = name;
-        this.gDialog.setSpeciesText(name);
+        if (name != null && name.length() > 0)
+        {
+            this.species = name;
+            this.gDialog.setSpeciesText(name);
+        }
     }
 
 
@@ -477,7 +480,8 @@ public class CyGoose implements Goose3 {
             selectNodesEdges(Cytoscape.getNetwork(NetworkId), names);
         }
 
-        if (namelist.getSpecies() != null) this.setSpeciesName(namelist.getSpecies());
+        if (namelist.getSpecies() != null && namelist.getSpecies().length() > 0)
+            this.setSpeciesName(namelist.getSpecies());
         return NetworkId;
     }
 
