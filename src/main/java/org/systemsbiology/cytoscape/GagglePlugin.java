@@ -5,6 +5,7 @@ import cytoscape.CyNetwork;
 import cytoscape.Cytoscape;
 import cytoscape.CytoscapeInit;
 import cytoscape.CytoscapeVersion;
+import cytoscape.init.CyInitParams;
 import cytoscape.logger.CyLogger;
 import cytoscape.layout.CyLayoutAlgorithm;
 import cytoscape.layout.CyLayouts;
@@ -341,6 +342,9 @@ implements PropertyChangeListener, GaggleConnectionListener,
         logger.info("createNewGoose(): initial network name: " + Network.getTitle());
         CyGoose Goose = new CyGoose(gDialog);//, gaggleBoss);
         Goose.setNetworkId(Network.getIdentifier());
+        // Set the species of the new goose to what is set on the gDialog
+        logger.info("Current gaggle dialog species " + gDialog.getSpecies());
+        Goose.setSpeciesName(gDialog.getSpecies());
         // Include the original goose name to the goose name for recording workflow purpose
         logger.info("Create new goose get network title: " + Network.getTitle());
         Goose.setName(Network.getTitle());
@@ -402,6 +406,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
 
 
     private void initUI() {
+        //if (CytoscapeInit.getCyInitParams().getMode() == CyInitParams.GUI)
         logger.info("initUI()");
         // layouts
         java.util.Collection<CyLayoutAlgorithm> Layouts = CyLayouts.getAllLayouts();

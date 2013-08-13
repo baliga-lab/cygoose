@@ -812,7 +812,14 @@ public class CyGoose implements Goose3 {
                 }
             }
 
+            if (NetworkId == null)
+            {
+                // A session file is being opened, we wait a while before trying to get the network ID
+                Thread.sleep(3000);
+                NetworkId = Cytoscape.getCurrentNetwork().getIdentifier();
+            }
             logger.info("Checking NetworkId..." + NetworkId);
+
             if (NetworkId != null)
             {
                 logger.info("Add WorkflowAction " + requestID + " of Network " + NetworkId + " to Hashmap");
