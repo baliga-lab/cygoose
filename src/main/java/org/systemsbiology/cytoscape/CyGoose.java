@@ -1,54 +1,49 @@
 package org.systemsbiology.cytoscape;
 
-import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
-import com.install4j.runtime.installer.helper.Logger;
-import cytoscape.actions.SaveSessionAction;
-import cytoscape.data.ImportHandler;
-import cytoscape.data.Semantics;
+import cytoscape.CyEdge;
+import cytoscape.CyNetwork;
+import cytoscape.CyNode;
+import cytoscape.Cytoscape;
+import cytoscape.data.CyAttributes;
 import cytoscape.data.readers.CytoscapeSessionReader;
-import cytoscape.data.readers.GraphReader;
 import cytoscape.data.writers.CytoscapeSessionWriter;
-import cytoscape.layout.LayoutAlgorithm;
-import cytoscape.util.URLUtil;
+import cytoscape.layout.CyLayoutAlgorithm;
+import cytoscape.layout.CyLayouts;
+import cytoscape.logger.CyLogger;
 import cytoscape.util.export.BitmapExporter;
 import cytoscape.view.CyNetworkView;
-import cytoscape.view.CytoscapeDesktop;
-import cytoscape.visual.mappings.ObjectMapping;
-import cytoscape.visual.parsers.StringParser;
-import org.apache.commons.collections.iterators.ArrayListIterator;
-import org.systemsbiology.cytoscape.dialog.GooseDialog;
-import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
-import org.systemsbiology.cytoscape.task.HandleNetworkTask;
-
-import org.systemsbiology.cytoscape.visual.SeedMappings;
-import org.systemsbiology.cytoscape.script.*;
-import org.systemsbiology.gaggle.core.*;
-import org.systemsbiology.gaggle.core.datatypes.*;
-
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.rmi.RemoteException;
-import java.rmi.UnmarshalException;
-import java.io.*;
-import java.util.*;
-
-import javax.swing.*;
-import java.net.*;
-
-import cytoscape.*;
-import cytoscape.logger.CyLogger;
-import static cytoscape.CytoscapeInit.getProperties;
 import cytoscape.visual.NodeAppearanceCalculator;
 import cytoscape.visual.VisualStyle;
-
-import cytoscape.data.CyAttributes;
-
-import cytoscape.layout.CyLayouts;
-import cytoscape.layout.CyLayoutAlgorithm;
-
-import giny.model.Node;
 import giny.model.Edge;
+import giny.model.Node;
+import org.systemsbiology.cytoscape.dialog.GooseDialog;
+import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
+import org.systemsbiology.cytoscape.script.Command;
+import org.systemsbiology.cytoscape.script.CommandHandler;
+import org.systemsbiology.cytoscape.task.HandleNetworkTask;
+import org.systemsbiology.cytoscape.visual.SeedMappings;
+import org.systemsbiology.gaggle.core.Boss;
+import org.systemsbiology.gaggle.core.Boss3;
+import org.systemsbiology.gaggle.core.Goose3;
+import org.systemsbiology.gaggle.core.datatypes.*;
+import org.systemsbiology.gaggle.util.MiscUtil;
 import sun.awt.AppContext;
+
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.net.URL;
+import java.rmi.RemoteException;
+import java.rmi.UnmarshalException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+
+import static cytoscape.CytoscapeInit.getProperties;
 
 
 /* TODO all cases need to handle the "null network" case by either doing the
@@ -98,10 +93,12 @@ public class CyGoose implements Goose3 {
     private boolean isRecording = false;
     private String actionRecordingFile = "";
     private PrintWriter actionRecordingFileWriter;
+    private GagglePlugin plugin = null;
 
     private static void print(String s) { System.out.println(s); }
 
-    public CyGoose(GooseDialog GD) {
+    public CyGoose(GooseDialog GD, GagglePlugin plugin) {
+        this.plugin = plugin;
         gDialog = GD;
         // deals with everything but the broadcast actions
         addButtonActions();
@@ -755,7 +752,7 @@ public class CyGoose implements Goose3 {
                         {
                             // if started from jnlp, wait for the network to be loaded
                             // before processing workflowaction data
-                            Thread.sleep(10000);
+                            Thread.sleep(7000);
                         }
                         catch (Exception ee)
                         {
@@ -809,6 +806,18 @@ public class CyGoose implements Goose3 {
                 {
                     NetworkId = Network.getIdentifier();
                     logger.info("Network ID: " + NetworkId);
+
+                    // We create a new goose corresponding to the network
+                    if (plugin != null && NetworkId != null && !plugin.gooseExists(NetworkId))
+                    {
+                        CyGoose NewGoose =  plugin.createNewGoose(Network);
+                        logger.info("Saved new goose " + NewGoose.getName() + " for " + NetworkId);
+                        plugin.addGoose(NetworkId, NewGoose);
+                        MiscUtil.updateGooseChooser(gDialog.getGooseChooser(),
+                                "ADummyString",
+                                NewGoose.getActiveGooseNames());
+                    }
+
                 }
             }
 

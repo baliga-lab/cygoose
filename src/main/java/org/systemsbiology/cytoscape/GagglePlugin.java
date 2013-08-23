@@ -1,18 +1,15 @@
 package org.systemsbiology.cytoscape;
 
-import com.install4j.runtime.installer.helper.Logger;
 import cytoscape.CyNetwork;
 import cytoscape.Cytoscape;
 import cytoscape.CytoscapeInit;
 import cytoscape.CytoscapeVersion;
-import cytoscape.init.CyInitParams;
-import cytoscape.logger.CyLogger;
 import cytoscape.layout.CyLayoutAlgorithm;
 import cytoscape.layout.CyLayouts;
+import cytoscape.logger.CyLogger;
 import cytoscape.plugin.CytoscapePlugin;
-import cytoscape.view.cytopanels.CytoPanel;
 import cytoscape.view.CytoscapeDesktop;
-import org.biojava.bio.symbol.IntegerAlphabet;
+import cytoscape.view.cytopanels.CytoPanel;
 import org.systemsbiology.cytoscape.dialog.GooseDialog;
 import org.systemsbiology.cytoscape.dialog.GooseDialog.GooseButton;
 import org.systemsbiology.gaggle.core.Boss;
@@ -25,10 +22,10 @@ import org.systemsbiology.gaggle.geese.common.RmiGaggleConnector;
 import org.systemsbiology.gaggle.util.MiscUtil;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.rmi.RemoteException;
@@ -36,11 +33,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.MenuEvent;
-import javax.swing.event.MenuListener;
 
 /**
  * Cytoscape-Gaggle Plugin.
@@ -113,6 +105,19 @@ implements PropertyChangeListener, GaggleConnectionListener,
     }
 
     public GooseWorkflowManager getWorkflowManager() { return workflowManager; }
+
+    public Boolean gooseExists(String networkId)
+    {
+        return networkGeese.containsKey(networkId);
+    }
+
+    public void addGoose(String networkId, CyGoose goose)
+    {
+        if (networkGeese != null && goose != null && networkId != null)
+        {
+            networkGeese.put(networkId, goose);
+        }
+    }
 
     private String getTargetGoose() {
         int targetGooseIndex = this.gDialog.getGooseChooser().getSelectedIndex();
@@ -337,10 +342,10 @@ implements PropertyChangeListener, GaggleConnectionListener,
     /*
      * Creates a new goose for the given network
      */
-    private CyGoose createNewGoose(CyNetwork Network)
+    public CyGoose createNewGoose(CyNetwork Network)
         throws RemoteException, IllegalArgumentException {
         logger.info("createNewGoose(): initial network name: " + Network.getTitle());
-        CyGoose Goose = new CyGoose(gDialog);//, gaggleBoss);
+        CyGoose Goose = new CyGoose(gDialog, this);//, gaggleBoss);
         Goose.setNetworkId(Network.getIdentifier());
         // Set the species of the new goose to what is set on the gDialog
         logger.info("Current gaggle dialog species " + gDialog.getSpecies());
