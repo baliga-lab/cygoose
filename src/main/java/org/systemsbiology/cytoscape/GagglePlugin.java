@@ -32,7 +32,6 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Cytoscape-Gaggle Plugin.
@@ -61,7 +60,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
     protected static String myGaggleName;
     // keeps track of all the network ids key = network id  value = goose
     private static Map<String, CyGoose> networkGeese;
-    private static Set<String> species;
+
 
     private GooseWorkflowManager workflowManager = new GooseWorkflowManager();
 
@@ -280,6 +279,7 @@ implements PropertyChangeListener, GaggleConnectionListener,
                         MiscUtil.updateGooseChooser(gDialog.getGooseChooser(),
                                                 "ADummyString",
                                                 NewGoose.getActiveGooseNames());
+                        gDialog.setSpeciesText(gDialog.getSpeciesNetwork(net.getIdentifier()));
                     } catch (RemoteException ex) {
                         GagglePlugin.showDialogBox("Failed to create a new Goose for network " +
                                                    net.getTitle(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -307,7 +307,8 @@ implements PropertyChangeListener, GaggleConnectionListener,
                 } else if (Event.getPropertyName() == CytoscapeDesktop.NETWORK_VIEW_FOCUSED) {
                     logger.info("=== Event " + Event.getPropertyName() + "===");
                     CyGoose current = networkGeese.get(Cytoscape.getCurrentNetwork().getIdentifier());
-                    gDialog.setSpeciesText(current.getSpeciesName());
+                    String species = gDialog.getSpeciesNetwork(Cytoscape.getCurrentNetwork().getIdentifier());
+                    gDialog.setSpeciesText(species);
                     // Set the next workflow component text
                     String requestID = gDialog.getRequestID(Cytoscape.getCurrentNetwork().getIdentifier());
                     WorkflowAction action = workflowManager.getWorkflowAction(requestID);
@@ -349,7 +350,14 @@ implements PropertyChangeListener, GaggleConnectionListener,
         Goose.setNetworkId(Network.getIdentifier());
         // Set the species of the new goose to what is set on the gDialog
         logger.info("Current gaggle dialog species " + gDialog.getSpecies());
-        Goose.setSpeciesName(gDialog.getSpecies());
+        String species = gDialog.getSpeciesNetwork(Network.getIdentifier());
+        if (species == null)
+            species = gDialog.getSpecies();
+        Goose.setSpeciesName(species);
+
+        logger.info("Associate Network " + Network.getIdentifier() + " with species " + species);
+        gDialog.setSpeciesNetwork(Network.getIdentifier(), species);
+
         // Include the original goose name to the goose name for recording workflow purpose
         logger.info("Create new goose get network title: " + Network.getTitle());
         Goose.setName(Network.getTitle());

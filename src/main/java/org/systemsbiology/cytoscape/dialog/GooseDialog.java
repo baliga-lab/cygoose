@@ -1,20 +1,16 @@
 package org.systemsbiology.cytoscape.dialog;
 
-import com.install4j.runtime.beans.actions.SystemAutoUninstallInstallAction;
-import com.sosnoski.util.array.StringArray;
-import cytoscape.CyNetwork;
-import cytoscape.Cytoscape;
-import org.apache.commons.collections.map.HashedMap;
 import org.systemsbiology.cytoscape.CyGoose;
 import org.systemsbiology.gaggle.core.GooseWorkflowManager;
-import org.systemsbiology.gaggle.core.datatypes.*;
+import org.systemsbiology.gaggle.core.datatypes.WorkflowAction;
+import org.systemsbiology.gaggle.core.datatypes.WorkflowComponent;
 import sun.awt.AppContext;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
-import java.util.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author skillcoy
@@ -27,6 +23,11 @@ public class GooseDialog extends javax.swing.JPanel {
     DefaultListModel listModel = new DefaultListModel();
     boolean workflowStarted = false;
     AppContext appContext = null;
+
+    private boolean isSavingState = false;
+    private Object syncObj = new Object();
+
+    private static Map<String, String> speciesNetworks = Collections.synchronizedMap(new HashMap<String, String>());
 
     public enum GooseButton {
         CONNECT("Connect"), SHOW("Show"), HIDE("Hide"), TUPLE(
@@ -80,10 +81,62 @@ public class GooseDialog extends javax.swing.JPanel {
         this.dataTypeText.setText(type);
     }
 
+    public boolean getSavingState()
+    {
+        boolean result = false;
+        synchronized (syncObj)
+        {
+            result = isSavingState;
+        }
+        return result;
+    }
+
+    public boolean getAndSetSavingState(boolean value)
+    {
+        boolean result = false;
+        synchronized (syncObj)
+        {
+            result = isSavingState;
+            isSavingState = value;
+        }
+        return result;
+    }
+
+    public void setSavingState(boolean value)
+    {
+        synchronized (syncObj)
+        {
+            isSavingState = value;
+        }
+    }
 
     public void displayMessage(String msg) {
         this.messageText.setText(msg);
     }
+
+    public void setSpeciesNetwork(String networkId, String species)
+    {
+        if (networkId != null && species != null)
+        {
+            speciesNetworks.put(networkId, species);
+        }
+    }
+
+    public String getSpeciesNetwork(String networkId)
+    {
+        if (speciesNetworks.containsKey(networkId))
+        {
+            return speciesNetworks.get(networkId);
+        }
+        return null;
+    }
+
+    public HashMap<String, String> getSpeciesNetworksMap()
+    {
+        HashMap<String, String> result = new HashMap(speciesNetworks);
+        return result;
+    }
+
 
     public void addButtonAction(GooseButton gb, ActionListener l) {
         javax.swing.JButton button = null;
@@ -195,7 +248,17 @@ public class GooseDialog extends javax.swing.JPanel {
             connectButton.setActionCommand("connect");
         }
     }
-    
+
+    public String processSpeciesString(String rawSpecies)
+    {
+        String species = rawSpecies.trim();
+        String[] splitted = species.split(";");
+        if (splitted.length > 1)
+            species = splitted[1].trim().toLowerCase();
+        System.out.println("Workflow species " + species);
+        return species;
+    }
+
     public void setWorkflowUI(WorkflowAction action, String requestID)
     {
         if (action != null)
@@ -204,10 +267,7 @@ public class GooseDialog extends javax.swing.JPanel {
             // Set species
             // species is in the format of short name;long name
             String species = this.getWorkflowManager().getSpecies(requestID);
-            String[] splitted = species.split(";");
-            if (splitted.length > 1)
-                species = splitted[1].trim().toLowerCase();
-            System.out.println("Workflow species " + species);
+            species = processSpeciesString(species);
             if (species != null && species.length() > 0)
                 this.setSpeciesText(species);
 

@@ -1,10 +1,6 @@
 package org.systemsbiology.cytoscape;
 
-import EDU.oswego.cs.dl.util.concurrent.ThreadedExecutor;
-import com.sosnoski.util.array.ObjectArray;
-import com.sosnoski.util.array.StringArray;
 import cytoscape.CyEdge;
-import cytoscape.CyNetwork;
 import cytoscape.CyNode;
 import cytoscape.Cytoscape;
 import cytoscape.data.CyAttributes;
@@ -18,10 +14,6 @@ import org.systemsbiology.gaggle.core.GooseWorkflowManager;
 import org.systemsbiology.gaggle.core.datatypes.*;
 
 import javax.swing.*;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.*;
 
 /**
@@ -103,8 +95,8 @@ public class CyBroadcast {
         }
 
         Namelist namelist = new Namelist();
-        System.out.println("Species of the namelist " + gDialog.getSpecies());
-        namelist.setSpecies(gDialog.getSpecies());
+        System.out.println("Species of the namelist of Network " + goose.getNetworkId() + " " + gDialog.getSpeciesNetwork(goose.getNetworkId()));
+        namelist.setSpecies(gDialog.getSpeciesNetwork(goose.getNetworkId()));
         namelist.setNames(selectedIds.toArray(new String[0]));
         return namelist;
     }
@@ -198,7 +190,7 @@ public class CyBroadcast {
         }
 
         GaggleTuple gaggleTuple = new GaggleTuple();
-        gaggleTuple.setSpecies(gDialog.getSpecies());
+        gaggleTuple.setSpecies(this.gDialog.getSpeciesNetwork(goose.getNetworkId()));
         gaggleTuple.setName(getNetworkTitle(goose)); //why?
 
         Set<CyNode> selectedNodes = getSelectedNodes(goose);
@@ -254,7 +246,7 @@ public class CyBroadcast {
         }
 
         gaggleTuple.setData(dataTuple);
-        gaggleTuple.setSpecies(this.gDialog.getSpecies());
+        gaggleTuple.setSpecies(this.gDialog.getSpeciesNetwork(goose.getNetworkId()));
         return gaggleTuple;
     }
 
@@ -285,7 +277,7 @@ public class CyBroadcast {
         // initialize DataMatrix
         DataMatrix matrix = new DataMatrix();
         matrix.setColumnTitles(condNames);
-        matrix.setSpecies(gDialog.getSpecies());
+        matrix.setSpecies(this.gDialog.getSpeciesNetwork(goose.getNetworkId()));
 
         logger.info("Loop through all nodes...");
         // loop through all flagged nodes and construct a DataMatrix with

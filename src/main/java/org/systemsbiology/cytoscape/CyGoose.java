@@ -32,16 +32,11 @@ import sun.awt.AppContext;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.URL;
 import java.rmi.RemoteException;
 import java.rmi.UnmarshalException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static cytoscape.CytoscapeInit.getProperties;
 
@@ -834,6 +829,10 @@ public class CyGoose implements Goose3 {
                 logger.info("Add WorkflowAction " + requestID + " of Network " + NetworkId + " to Hashmap");
                 gDialog.addRequestNetwork(NetworkId, requestID, true);
 
+                String species = gDialog.getWorkflowManager().getSpecies(requestID);
+                species = gDialog.processSpeciesString(species);
+                logger.info("Network " + NetworkId + " with species " + species);
+                gDialog.setSpeciesNetwork(NetworkId, species);
                 if (gaggleBoss instanceof Boss3)
                 {
                     try
@@ -954,39 +953,126 @@ public class CyGoose implements Goose3 {
             try
             {
                 sessionWriter.writeSessionToDisk();
+                outputNetworkSpecies(directory, filePrefix);
             }
             catch (Exception e)
             {
                 logger.error("Failed to save session file " + e.getMessage());
+            }
+            finally
+            {
+                gDialog.setSavingState(false);
+            }
+        }
+    }
+
+    // Output species corresponding to networks to state files
+    private void outputNetworkSpecies(String directory, String filePrefix)
+    {
+        if (directory != null && filePrefix != null)
+        {
+            HashMap<String, String> speciesNetworks = gDialog.getSpeciesNetworksMap();
+            if (speciesNetworks != null)
+            {
+                FileOutputStream fostream = null;
+                String fullpathname = directory + File.separator + filePrefix + "_" + UUID.randomUUID().toString() + "_Cytoscape.sav";
+                System.out.println("Initialize state file: " + fullpathname);
+                try {
+                    fostream = new FileOutputStream(fullpathname);
+                    for (String networkId : speciesNetworks.keySet())
+                    {
+                        String output = networkId + ";;" + speciesNetworks.get(networkId) + "\n";
+                        logger.info("Save state write " + output);
+                        fostream.write(output.getBytes());
+                    }
+                    //fostream.flush();
+                    fostream.close();
+                }
+                catch (Exception e) {
+                    logger.warning("Failed to open file " + fullpathname + " " + e.getMessage());
+                }
             }
         }
     }
 
     public void saveState(final String directory, final String filePrefix)
     {
-        if (AppContext.getAppContext() == null)
+        // We only allow one save state (multiple saving only generates duplicate session files)
+        if (!gDialog.getAndSetSavingState(true))
         {
-            logger.info("Save state passing appContext " + directory + " " + filePrefix);
-            Runnable saveStateTask = new Runnable() {
-                public void run() {
-                    processSaveState(directory, filePrefix);
-                }
-            };
-            gDialog.invokeLater2(saveStateTask);
-        }
-        else
-        {
-            logger.info("Save state with appContext " + directory + " " + filePrefix);
-            processSaveState(directory, filePrefix);
+            if (AppContext.getAppContext() == null)
+            {
+                logger.info("Save state passing appContext " + directory + " " + filePrefix);
+                Runnable saveStateTask = new Runnable() {
+                    public void run() {
+                        processSaveState(directory, filePrefix);
+                    }
+                };
+                gDialog.invokeLater2(saveStateTask);
+            }
+            else
+            {
+                logger.info("Save state with appContext " + directory + " " + filePrefix);
+                processSaveState(directory, filePrefix);
+            }
         }
     }
+
+
+    private void loadNetworkSpecies(String fullpathname)
+    {
+        if (fullpathname != null)
+        {
+            FileInputStream finstream = null;
+            System.out.println("Initialize state file: " + fullpathname);
+            try {
+                finstream = new FileInputStream(fullpathname);
+                BufferedReader loadBufferedReader = new BufferedReader(new InputStreamReader(finstream));
+
+                String info = null;
+                String currNetworkId = Cytoscape.getCurrentNetwork().getIdentifier();
+                do
+                {
+                    info = loadBufferedReader.readLine();
+                    if (info != null)
+                    {
+                        System.out.println("Read state info " + info);
+                        String[] splitted = info.split(";;");
+                        if (splitted != null && splitted.length > 1)
+                        {
+                            gDialog.setSpeciesNetwork(splitted[0], splitted[1]);
+                            if (splitted.equals(currNetworkId))
+                            {
+                                System.out.println("Setting species text to " + splitted[1]);
+                                gDialog.setSpeciesText(splitted[1]);
+                            }
+                        }
+                    }
+                }
+                while (info != null);
+                loadBufferedReader.close();
+                finstream.close();
+            }
+            catch (Exception e) {
+                logger.warning("Failed to load state file " + fullpathname + " " + e.getMessage());
+            }
+        }
+    }
+
 
     private void processLoadState(String restorefilename)
     {
         try
         {
-            CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(restorefilename);
-            sessionReader.read();
+            if (restorefilename.toLowerCase().contains(".cys"))
+            {
+                CytoscapeSessionReader sessionReader = new CytoscapeSessionReader(restorefilename);
+                sessionReader.read();
+            }
+            else
+            {
+                loadNetworkSpecies(restorefilename);
+            }
         }
         catch (Exception e)
         {
