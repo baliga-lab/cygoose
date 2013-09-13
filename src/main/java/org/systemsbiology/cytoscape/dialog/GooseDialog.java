@@ -26,6 +26,7 @@ public class GooseDialog extends javax.swing.JPanel {
 
     private boolean isSavingState = false;
     private Object syncObj = new Object();
+    private ThreadGroup javawsApplicationThreadGroup = null;
 
     private static Map<String, String> speciesNetworks = Collections.synchronizedMap(new HashMap<String, String>());
 
@@ -47,16 +48,13 @@ public class GooseDialog extends javax.swing.JPanel {
     public GooseDialog() {
         initComponents();
         appContext = AppContext.getAppContext();
+        javawsApplicationThreadGroup = workflowManager.getThreadGroup("javawsApplicationThreadGroup");
         System.out.println("Main appContext " + appContext);
     }
 
     public void invokeLater2(Runnable rn) {
-        if (AppContext.getAppContext() == null) {
-            System.out.println("...Invoke on appContext...");
-            sun.awt.SunToolkit.invokeLaterOnAppContext(appContext, rn);
-        } else {
-            SwingUtilities.invokeLater(rn);
-        }
+        if (rn != null)
+            this.workflowManager.invokeLater2(this.javawsApplicationThreadGroup, appContext, rn);
     }
 
     public void setContextClassLoader()

@@ -208,10 +208,24 @@ public class CyGoose implements Goose3 {
      * TODO: select all nodes that match geneNames with attributes in 
      * conditionNames of species specified should be selected 
      */
-    public void handleCluster(String source, Cluster cluster)
+    public void handleCluster(final String source, final Cluster cluster)
         throws RemoteException {
-        processCluster(this.getNetworkId(), source, cluster, false);
-		}
+
+        Runnable task = new Runnable() {
+            public void run() {
+                try
+                {
+                    processCluster(getNetworkId(), source, cluster, false);
+                }
+                catch (Exception e)
+                {
+                    logger.warning("Failed to handle cluster " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        gDialog.invokeLater2(task);
+	}
 
     private String processCluster(String NetworkId, String source, Cluster cluster, boolean createNewNetwork) throws RemoteException
     {
@@ -343,10 +357,24 @@ public class CyGoose implements Goose3 {
         Cytoscape.getNetworkView(net.getIdentifier()).redrawGraph(true, true);
     }
 
-    public void handleTuple(String string, GaggleTuple gaggleTuple)
+    public void handleTuple(final String string, final GaggleTuple gaggleTuple)
         throws RemoteException {
-            processTuple(this.getNetworkId(), string, gaggleTuple);
-		}
+
+        Runnable task = new Runnable() {
+            public void run() {
+                try
+                {
+                    processTuple(getNetworkId(), string, gaggleTuple);
+                }
+                catch (Exception e)
+                {
+                    logger.warning("Failed to handle cluster " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        gDialog.invokeLater2(task);
+	}
 
 
     private void processMatrix(String networkId, String source, DataMatrix matrix)
@@ -427,16 +455,33 @@ public class CyGoose implements Goose3 {
      * @param matrix
      *          Adds all attributes given in the matix to all matching nodes.
      */
-    public void handleMatrix(String source, DataMatrix matrix)
+    public void handleMatrix(final String source, final DataMatrix matrix)
         throws RemoteException {
         logger.info("***** handleMatrix(DataMatrix) ****** ");
-        processMatrix(this.getNetworkId(), source, matrix);
-		}
+
+        Runnable task = new Runnable() {
+            public void run() {
+                try
+                {
+                    processMatrix(getNetworkId(), source, matrix);
+                }
+                catch (Exception e)
+                {
+                    logger.warning("Failed to handle matrix " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        gDialog.invokeLater2(task);
+	}
 
     private String processNameList(String NetworkId, String source, Namelist namelist, boolean createNewNetwork) throws RemoteException
     {
         logger.info("**** handleNameList(String, Namelist) *****");
+        System.out.println("Name " + namelist.getName() + " species " + namelist.getSpecies() + " names " + namelist.getNames());
         String[] names = namelist.getNames();
+        if (names != null && names.length > 0)
+            logger.info("Names " + names.length + " " + names[0]);
         //String NetworkId = this.getNetworkId();
         if (NetworkId != null)
             logger.info("NetworkId: " + NetworkId);
@@ -445,19 +490,27 @@ public class CyGoose implements Goose3 {
         if (NetworkId == null || NetworkId.equals("0") || createNewNetwork) {
             logger.info("Network set size: " + Cytoscape.getNetworkSet().size());
             if (Cytoscape.getNetworkSet().size() <= 0 || createNewNetwork) {
-                System.out.println("  --Null network");
-                String title = namelist.getName();
-                if (title == null) title = namelist.getSpecies();
-                CyNetwork NewNet = Cytoscape.createNetwork(title, true);
-                NetworkId = NewNet.getIdentifier();
-                logger.info("New network ID: " + NetworkId);
-                for (String CurrentName : names) {
-                    CyNode NewNode = Cytoscape.getCyNode(CurrentName, true);
-                    NewNet.addNode(NewNode.getRootGraphIndex());
+                try
+                {
+                    System.out.println("  --Null network");
+                    String title = namelist.getName();
+                    if (title == null) title = namelist.getSpecies();
+                    CyNetwork NewNet = Cytoscape.createNetwork(title, true);
+                    NetworkId = NewNet.getIdentifier();
+                    logger.info("New network ID: " + NetworkId);
+                    for (String CurrentName : names) {
+                        CyNode NewNode = Cytoscape.getCyNode(CurrentName, true);
+                        NewNet.addNode(NewNode.getRootGraphIndex());
+                    }
+                    Cytoscape.getNetworkView(NewNet.getIdentifier())
+                            .applyLayout(CyLayouts.getDefaultLayout());
+                    Cytoscape.getNetworkView(NewNet.getIdentifier()).redrawGraph(true, true);
                 }
-                Cytoscape.getNetworkView(NewNet.getIdentifier())
-                        .applyLayout(CyLayouts.getDefaultLayout());
-                Cytoscape.getNetworkView(NewNet.getIdentifier()).redrawGraph(true, true);
+                catch (Exception e)
+                {
+                    logger.warning("Failed to create new network " + e.getMessage());
+                    e.printStackTrace();
+                }
             } else  {
                 // handle on all networks
                 logger.info("Handle on all networks");
@@ -483,10 +536,24 @@ public class CyGoose implements Goose3 {
      *          If sent to a network goose (not the default 'null' goose) all
      *          matching nodes will be selected. Species is ignored.
      */
-    public void handleNameList(String source, Namelist namelist)
+    public void handleNameList(final String source, final Namelist namelist)
         throws RemoteException {
         String networkId = this.getNetworkId();
-        processNameList(this.getNetworkId(), source, namelist, false);
+
+        Runnable task = new Runnable() {
+            public void run() {
+                try
+                {
+                    processNameList(getNetworkId(), source, namelist, false);
+                }
+                catch (Exception e)
+                {
+                    logger.warning("Failed to handle namelist " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        gDialog.invokeLater2(task);
     }
 
     private void selectNodesEdges(CyNetwork CyNet, String[] names) {
@@ -581,10 +648,24 @@ public class CyGoose implements Goose3 {
      *          are added to the network and all added interactions and matching
      *          interactions are selected.
      */
-    public void handleNetwork(String source, Network gNetwork)
+    public void handleNetwork(final String source, final Network gNetwork)
         throws RemoteException {
-        processNetwork(this.getNetworkId(), source, gNetwork, false);
-		}
+
+        Runnable task = new Runnable() {
+            public void run() {
+                try
+                {
+                    processNetwork(getNetworkId(), source, gNetwork, false);
+                }
+                catch (Exception e)
+                {
+                    logger.warning("Failed to handle namelist " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        gDialog.invokeLater2(task);
+    }
 
     public GaggleGooseInfo getGooseInfo() throws RemoteException
     {
@@ -927,6 +1008,7 @@ public class CyGoose implements Goose3 {
         if (workflowAction != null)
         {
             logger.info("  --Workflow Action from " + workflowAction.getSource().getName());
+
             Runnable workflowTask = new Runnable() {
                 public void run() {
                     processWorkflow(workflowAction);
